@@ -156,10 +156,13 @@
     <ClCompile Include="HomeWork1.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Classes\Basic_Test.h" />
     <ClInclude Include="Classes\Shader.h" />
     <ClInclude Include="Classes\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\basic_trans.frag" />
+    <None Include="Shaders\basic_trans.vert" />
     <None Include="Shaders\container.frag" />
     <None Include="Shaders\container.vert" />
     <None Include="Shaders\glm.frag" />

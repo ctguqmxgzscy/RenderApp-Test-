@@ -38,6 +38,9 @@
     <ClInclude Include="Classes\stb_image.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Classes\Basic_Test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\container.frag">
@@ -56,6 +59,12 @@
       <Filter>资源文件\Shaders</Filter>
     </None>
     <None Include="Shaders\glm.frag">
+      <Filter>资源文件\Shaders</Filter>
+    </None>
+    <None Include="Shaders\basic_trans.vert">
+      <Filter>资源文件\Shaders</Filter>
+    </None>
+    <None Include="Shaders\basic_trans.frag">
       <Filter>资源文件\Shaders</Filter>
     </None>
   </ItemGroup>
