@@ -21,14 +21,17 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HomeWork1.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\glad\src\glad.c">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Classes\Shader.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="glad\src\glad.c">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Camera.cpp">
+      <Filter>头文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -39,6 +42,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Basic_Test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,6 +71,12 @@
       <Filter>资源文件\Shaders</Filter>
     </None>
     <None Include="Shaders\basic_trans.frag">
+      <Filter>资源文件\Shaders</Filter>
+    </None>
+    <None Include="Shaders\primary_graphic.vert">
+      <Filter>资源文件\Shaders</Filter>
+    </None>
+    <None Include="Shaders\primary_graphic.frag">
       <Filter>资源文件\Shaders</Filter>
     </None>
   </ItemGroup>

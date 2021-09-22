@@ -72,19 +72,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>glfw-3.3.bin.WIN32\include;glad\include;glad\src;$(IncludePath)</IncludePath>
+    <IncludePath>glad\src;glad\include;glfw-3.3.bin.WIN32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>glfw-3.3.bin.WIN32\include;glad\include;glad\src;$(IncludePath)</IncludePath>
+    <IncludePath>glad\src;glad\include;glfw-3.3.bin.WIN32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>glfw-3.3.bin.WIN32\include;glad\include;glad\src;$(IncludePath)</IncludePath>
+    <IncludePath>glad\src;glad\include;glfw-3.3.bin.WIN32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>glfw-3.3.bin.WIN32\include;glad\include;glad\src;$(IncludePath)</IncludePath>
+    <IncludePath>glad\src;glad\include;glfw-3.3.bin.WIN32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -151,12 +151,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\glad\src\glad.c" />
+    <ClCompile Include="Classes\Camera.cpp" />
     <ClCompile Include="Classes\Shader.cpp" />
-    <ClCompile Include="HomeWork1.cpp" />
+    <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Classes\Basic_Test.h" />
+    <ClInclude Include="Classes\Camera.h" />
     <ClInclude Include="Classes\Shader.h" />
     <ClInclude Include="Classes\stb_image.h" />
   </ItemGroup>
@@ -167,6 +169,8 @@
     <None Include="Shaders\container.vert" />
     <None Include="Shaders\glm.frag" />
     <None Include="Shaders\glm.vert" />
+    <None Include="Shaders\primary_graphic.frag" />
+    <None Include="Shaders\primary_graphic.vert" />
     <None Include="Shaders\triangle.frag" />
     <None Include="Shaders\triangle.vert" />
   </ItemGroup>
