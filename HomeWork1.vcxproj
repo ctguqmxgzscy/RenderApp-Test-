@@ -159,16 +159,25 @@
   <ItemGroup>
     <ClInclude Include="Classes\Basic_Test.h" />
     <ClInclude Include="Classes\Camera.h" />
+    <ClInclude Include="Classes\Lighting_Test.h" />
     <ClInclude Include="Classes\Shader.h" />
     <ClInclude Include="Classes\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\Basic_Light.frag" />
+    <None Include="Shaders\Basic_Light.vert" />
     <None Include="Shaders\basic_trans.frag" />
     <None Include="Shaders\basic_trans.vert" />
     <None Include="Shaders\container.frag" />
     <None Include="Shaders\container.vert" />
+    <None Include="Shaders\DiffuseMap.frag" />
+    <None Include="Shaders\DiffuseMap.vert" />
     <None Include="Shaders\glm.frag" />
     <None Include="Shaders\glm.vert" />
+    <None Include="Shaders\Light.frag" />
+    <None Include="Shaders\Light.vert" />
+    <None Include="Shaders\Material.frag" />
+    <None Include="Shaders\Material.vert" />
     <None Include="Shaders\primary_graphic.frag" />
     <None Include="Shaders\primary_graphic.vert" />
     <None Include="Shaders\triangle.frag" />
@@ -177,6 +186,9 @@
   <ItemGroup>
     <Image Include="Resources\awesomeface.png" />
     <Image Include="Resources\container.jpg" />
+    <Image Include="Resources\container2.png" />
+    <Image Include="Resources\container2_specular.png" />
+    <Image Include="Resources\matrix.jpg" />
     <Image Include="Resources\wall.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

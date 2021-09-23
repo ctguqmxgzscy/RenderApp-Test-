@@ -19,6 +19,12 @@
     <Filter Include="资源文件\Shaders">
       <UniqueIdentifier>{80429d0c-0cfc-4b16-9edb-0cc9f5d0901d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\Shaders\Basic_testShaders">
+      <UniqueIdentifier>{8a4281a5-5399-464a-b12f-37b692c9ad3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\Shaders\Lighting_testShaders">
+      <UniqueIdentifier>{62188e68-37de-43ba-83ee-64f3eca208e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -47,37 +53,64 @@
     <ClInclude Include="Classes\Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Classes\Lighting_Test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\container.frag">
-      <Filter>资源文件\Shaders</Filter>
-    </None>
-    <None Include="Shaders\container.vert">
-      <Filter>资源文件\Shaders</Filter>
-    </None>
-    <None Include="Shaders\triangle.frag">
-      <Filter>资源文件\Shaders</Filter>
-    </None>
-    <None Include="Shaders\triangle.vert">
-      <Filter>资源文件\Shaders</Filter>
-    </None>
-    <None Include="Shaders\glm.vert">
-      <Filter>资源文件\Shaders</Filter>
-    </None>
-    <None Include="Shaders\glm.frag">
-      <Filter>资源文件\Shaders</Filter>
+    <None Include="Shaders\basic_trans.frag">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\basic_trans.vert">
-      <Filter>资源文件\Shaders</Filter>
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
-    <None Include="Shaders\basic_trans.frag">
-      <Filter>资源文件\Shaders</Filter>
+    <None Include="Shaders\container.frag">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
-    <None Include="Shaders\primary_graphic.vert">
-      <Filter>资源文件\Shaders</Filter>
+    <None Include="Shaders\container.vert">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\glm.frag">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\glm.vert">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\primary_graphic.frag">
-      <Filter>资源文件\Shaders</Filter>
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\primary_graphic.vert">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\triangle.frag">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\triangle.vert">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Basic_Light.frag">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Basic_Light.vert">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Light.frag">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Light.vert">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Material.vert">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Material.frag">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\DiffuseMap.vert">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\DiffuseMap.frag">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -88,6 +121,15 @@
       <Filter>资源文件\Picture</Filter>
     </Image>
     <Image Include="Resources\wall.jpg">
+      <Filter>资源文件\Picture</Filter>
+    </Image>
+    <Image Include="Resources\container2.png">
+      <Filter>资源文件\Picture</Filter>
+    </Image>
+    <Image Include="Resources\container2_specular.png">
+      <Filter>资源文件\Picture</Filter>
+    </Image>
+    <Image Include="Resources\matrix.jpg">
       <Filter>资源文件\Picture</Filter>
     </Image>
   </ItemGroup>
