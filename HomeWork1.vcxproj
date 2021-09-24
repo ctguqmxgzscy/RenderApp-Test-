@@ -176,6 +176,8 @@
     <None Include="Shaders\glm.vert" />
     <None Include="Shaders\Light.frag" />
     <None Include="Shaders\Light.vert" />
+    <None Include="Shaders\Light_Casters.frag" />
+    <None Include="Shaders\Light_Casters.vert" />
     <None Include="Shaders\Material.frag" />
     <None Include="Shaders\Material.vert" />
     <None Include="Shaders\primary_graphic.frag" />

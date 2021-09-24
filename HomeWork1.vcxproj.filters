@@ -112,6 +112,12 @@
     <None Include="Shaders\DiffuseMap.frag">
       <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
     </None>
+    <None Include="Shaders\Light_Casters.vert">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Light_Casters.frag">
+      <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\awesomeface.png">
