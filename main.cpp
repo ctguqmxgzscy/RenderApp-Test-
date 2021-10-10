@@ -24,7 +24,8 @@ int main()
     /*return CameraTest();*/
     //Lighting_Test.h--------------------
     /*return LightTest();*/
-    return LightCastersTest();
+    //return LightCastersTest();
+    return ModelLoaded();
 }
 
 

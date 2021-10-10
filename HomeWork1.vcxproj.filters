@@ -25,6 +25,9 @@
     <Filter Include="资源文件\Shaders\Lighting_testShaders">
       <UniqueIdentifier>{62188e68-37de-43ba-83ee-64f3eca208e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\Shaders\Model_testShaders">
+      <UniqueIdentifier>{bdec0e50-879d-4402-97de-050b1ec40e49}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -38,6 +41,12 @@
     </ClCompile>
     <ClCompile Include="Classes\Camera.cpp">
       <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Mesh.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Model.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +63,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Lighting_Test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Model.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\STBI.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -117,6 +135,13 @@
     </None>
     <None Include="Shaders\Light_Casters.frag">
       <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Shaders\Model.vert">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Model.frag">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
