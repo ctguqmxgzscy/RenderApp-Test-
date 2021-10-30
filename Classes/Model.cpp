@@ -10,8 +10,33 @@ void Model::Draw(Shader shader)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
-		meshes[i].Draw(shader);
+		if (this->isPicking) {
+			meshes[i].Draw_PickingEffects(shader, i);
+		}
+		else
+			meshes[i].Draw(shader);
+
 	}
+}
+
+void Model::Draw(Shader shader, unsigned int excluded_index)
+{
+	for (unsigned int i = 0; i < meshes.size(); i++)
+	{
+		if (i != excluded_index)
+			meshes[i].Draw(shader);
+	}
+}
+
+void Model::EnablePicking()
+{
+	this->isPicking = true;
+}
+
+void Model::DisablePicking()
+{
+
+	this->isPicking = false;
 }
 
 void Model::loadModel(std::string const &path)

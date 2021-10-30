@@ -39,13 +39,16 @@
     <ClCompile Include="glad\src\glad.c">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="Classes\Camera.cpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="Classes\Mesh.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Classes\Model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Camera.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Picking.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -72,6 +75,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\STBI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\OpenGL4_X.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Picking.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -141,6 +150,18 @@
       <Filter>资源文件\Shaders\Model_testShaders</Filter>
     </None>
     <None Include="Shaders\Model.frag">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Picking.frag">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\Picking.vert">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\simple_color.vert">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\simple_color.frag">
       <Filter>资源文件\Shaders\Model_testShaders</Filter>
     </None>
   </ItemGroup>

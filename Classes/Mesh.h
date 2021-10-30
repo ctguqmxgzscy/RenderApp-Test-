@@ -38,11 +38,20 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
+public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 		std::vector<Texture> textures);
+	 unsigned int& get_VAO() { return this->VAO; }
+	 unsigned int& get_VBO() { return this->VBO; }
+	 unsigned int& get_EBO() { return this->EBO; }
+
 	void Draw(Shader shader);
+	void Draw_PickingEffects(Shader shader,unsigned int i);
+	void Draw_Mesh_SimpleColor(Shader shader);
+	void Draw_Triangle_SimpleColor( Shader _exclude_shader ,Shader _simple_color_shader ,unsigned int primitiveIndex);
 private:
+	bool isPicking;
 	unsigned int VAO, VBO, EBO;
 	void setupMesh();
 };

@@ -9,22 +9,32 @@
 #include"../glm/glm.hpp"
 #include"../glm/gtc/matrix_transform.hpp"
 #include"../glm/gtc/type_ptr.hpp"
-#include"Model.h"
+#include"Picking.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 float lastX = SCR_WIDTH / 2, lastY = SCR_HEIGHT / 2;
 bool firstMouse = true;
+
 Camera* myCamera = new Camera();
+struct LeftMouse {
+    int x;
+    int y;
+    bool isPressed;
+};
+LeftMouse leftMouse;
 
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void window_size_callback(GLFWwindow* window, int width, int height);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 unsigned int loadTexture(char const* path);
 
 int LightTest() {
@@ -223,6 +233,7 @@ int LightTest() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glfwSwapBuffers(window);
+        
         glfwPollEvents();
     }
     glDeleteVertexArrays(1, &VAO);
@@ -232,6 +243,7 @@ int LightTest() {
     return 0;
 }
 int LightCastersTest() {
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -254,6 +266,7 @@ int LightCastersTest() {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
 #pragma region Data
     float vertices[] = {
         // positions          // normals           // texture coords
@@ -460,6 +473,7 @@ int LightCastersTest() {
     return 0;
 }
 int ModelLoaded() {
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -529,48 +543,89 @@ int ModelLoaded() {
         return -1;
     }
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetWindowSizeCallback(window, window_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     stbi_set_flip_vertically_on_load(true);
     glEnable(GL_DEPTH_TEST);
-
-    auto myLightShadfer = new Shader("Shaders/Light.vert", "Shaders/Light.frag");
+    
+    Shader myLightShadfer("Shaders/Picking.vert", "Shaders/Picking.frag");
     Shader myShader("Shaders/Model.vert", "Shaders/Model.frag");
-    Model ourModel("Resources/Nanosuit/nanosuit.obj");
+    Shader mySimpleShader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+    std::vector<RenderItem*> items;
+    items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
+    PickingTexture* pickingTexture = new PickingTexture();
+    if (!pickingTexture->Init(SCR_WIDTH,SCR_HEIGHT)) {
+        return false;
+    }
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        processInput(window);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        myShader.use();
+        processInput(window);
+        
+        pickingTexture->EnableWriting();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        myLightShadfer.use();
         glm::mat4 projection = glm::perspective(glm::radians(myCamera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = myCamera->getViewMatrix();
-        myShader.setMat4("projection", projection);
-        myShader.setMat4("view", view);
-        myShader.setFloat("material.shininess", 32);
-        myShader.setFloat("spotLight.constant", 1.0f);
-        myShader.setFloat("spotLight.linear", 0.09);
-        myShader.setFloat("spotLight.qudratic", 0.032);
-        myShader.setFloat("spotLight.innerCutOut", glm::cos(glm::radians(12.5f)));
-        myShader.setFloat("spotLight.outterCutOut", glm::cos(glm::radians(17.5f)));
-        myShader.setVec3("spotLight.position", myCamera->Position);
-        myShader.setVec3("spotLight.center", myCamera->Front);
-        myShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
-        myShader.setVec3("spotLight.diffuse", .8f, 0.8f, 0.8f);
-        myShader.setVec3("spotLight.specular", 1.f, 1.f, 1.f);
-
+        myLightShadfer.setMat4("projection", projection);
+        myLightShadfer.setMat4("view", view);
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(0.2f, .2f, .2f));	// it's a bit too big for our scene, so scale it down
-        myShader.setMat4("model", model);
-        ourModel.Draw(myShader);
+        myLightShadfer.setMat4("model", model);
 
+        for (unsigned int i = 0; i < items.size(); i++) {
+            myLightShadfer.setUint("ModelIndex", i);
+            items[i]->EnablePicking();
+            items[i]->Draw(myLightShadfer);
+            items[i]->DisablePicking();
+        }
+        pickingTexture->DisableWriting();
+
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        myShader.use();
+        myShader.setMat4("projection", projection);
+        myShader.setMat4("view", view);
+        myShader.setMat4("model", model);
+        myShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+        myShader.setVec3("viewPos", myCamera->Position);
+        // light properties
+        myShader.setVec3("dirLight.ambient", 0.51f, 0.51f, 0.5f);
+        myShader.setVec3("dirLight.diffuse", 0.99f, 0.99f, 0.99f);
+        myShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+        // material properties
+        myShader.setFloat("material.shininess", 32.0f);
+
+        if (leftMouse.isPressed) {
+            PickingTexture::PixelInfo Pixel = pickingTexture->ReadPixel(leftMouse.x, SCR_HEIGHT - leftMouse.y - 1);
+            //printf("ObjectID:%u---DrawIndex:%u---PrimatyID:%u\n", (unsigned int)Pixel.ObjectID,
+            //    (unsigned int)Pixel.DrawID, (unsigned int)Pixel.PrimID);
+            printf("ObjectID:%u---DrawIndex:%u---PrimatyID:%u\n", (unsigned int)Pixel.ObjectID,
+                (unsigned int)Pixel.DrawID, (unsigned int)Pixel.PrimID);
+
+            if (Pixel.PrimID != 0) {
+                mySimpleShader.use();
+                mySimpleShader.setMat4("projection", projection);
+                mySimpleShader.setMat4("view", view);
+                mySimpleShader.setMat4("model", model);
+                Shader* shader = &mySimpleShader;
+                items[Pixel.ObjectID]->Draw_Mesh_Onclicked(myShader, mySimpleShader, Pixel.DrawID);
+               /* items[Pixel.ObjectID]->Draw_Triangle_Onclicked(myShader, mySimpleShader, Pixel.DrawID, Pixel.PrimID - 1);*/
+            }
+        }
+        else
+            for (unsigned int i = 0; i < items.size(); i++) {
+                items[i]->Draw(myShader);
+            }
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -615,10 +670,15 @@ unsigned int loadTexture(char const* path)
 
     return textureID;
 }
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
     glViewport(0, 0, width, height);
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -635,14 +695,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
     lastX = xpos;
     lastY = ypos;
-
+    if (!(glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS))
+        return;
     myCamera->ProcessMouseMovement(xoffset, yoffset);
 }
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         myCamera->ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -655,8 +715,37 @@ void processInput(GLFWwindow* window)
         myCamera->MovementSpeed = 4.0f;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
         myCamera->MovementSpeed = 2.5f;
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        printf("WIDTH:%d,HEIGHT:%d\n", width, height);
+        glfwSetWindowSize(window, width + 10, height + 10);
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        printf("WIDTH:%d,HEIGHT:%d\n", width, height);
+        glfwSetWindowSize(window, width - 10, height - 10);
+    }
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     myCamera->ProcessMouseScroll(yoffset);
+}
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        leftMouse.isPressed = true;
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        leftMouse.x = xpos;
+        leftMouse.y = ypos;
+    }
+    else
+        leftMouse.isPressed = false;
+
 }

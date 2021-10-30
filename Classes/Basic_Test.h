@@ -14,6 +14,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 float lastX = SCR_WIDTH / 2, lastY = SCR_HEIGHT / 2;
 bool firstMouse = true;
+bool hiddenMosue = true;
 Camera* myCamera = new Camera();
 
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
@@ -107,7 +108,7 @@ int TextureTest() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
+    
     auto window = glfwCreateWindow(SCR_HEIGHT, SCR_WIDTH, "3DGraphicWindow", NULL, NULL);
     if (!window) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -115,7 +116,7 @@ int TextureTest() {
         return -1;
     }
     glfwMakeContextCurrent(window);
-
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -193,6 +194,7 @@ int TextureTest() {
         std::cout << "Failed to load texture2" << std::endl;
     }
     stbi_image_free(data);
+   
 
     auto myShader = new Shader("Shaders/container.vert", "Shaders/container.frag");
     myShader->use();
@@ -208,7 +210,7 @@ int TextureTest() {
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-
+        
         myShader->use();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -873,6 +875,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+
+    if (!hiddenMosue)
+        return;
+    printf("This is MOuse:%d\n", hiddenMosue);
     if (firstMouse)
     {
         lastX = xpos;
@@ -892,7 +898,6 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         myCamera->ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -905,6 +910,8 @@ void processInput(GLFWwindow* window)
         myCamera->MovementSpeed = 4.0f;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
         myCamera->MovementSpeed = 2.5f;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+        hiddenMosue = !hiddenMosue;
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {

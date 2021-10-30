@@ -154,6 +154,7 @@
     <ClCompile Include="Classes\Camera.cpp" />
     <ClCompile Include="Classes\Mesh.cpp" />
     <ClCompile Include="Classes\Model.cpp" />
+    <ClCompile Include="Classes\Picking.cpp" />
     <ClCompile Include="Classes\Shader.cpp" />
     <ClCompile Include="glad\src\glad.c" />
     <ClCompile Include="main.cpp" />
@@ -164,6 +165,8 @@
     <ClInclude Include="Classes\Lighting_Test.h" />
     <ClInclude Include="Classes\Mesh.h" />
     <ClInclude Include="Classes\Model.h" />
+    <ClInclude Include="Classes\OpenGL4_X.h" />
+    <ClInclude Include="Classes\Picking.h" />
     <ClInclude Include="Classes\Shader.h" />
     <ClInclude Include="Classes\STBI.h" />
     <ClInclude Include="Classes\stb_image.h" />
@@ -188,8 +191,12 @@
     <None Include="Shaders\Material.vert" />
     <None Include="Shaders\Model.frag" />
     <None Include="Shaders\Model.vert" />
+    <None Include="Shaders\Picking.frag" />
+    <None Include="Shaders\Picking.vert" />
     <None Include="Shaders\primary_graphic.frag" />
     <None Include="Shaders\primary_graphic.vert" />
+    <None Include="Shaders\simple_color.frag" />
+    <None Include="Shaders\simple_color.vert" />
     <None Include="Shaders\triangle.frag" />
     <None Include="Shaders\triangle.vert" />
   </ItemGroup>
