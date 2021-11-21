@@ -28,13 +28,19 @@ float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-
+//鼠标滚轮回调函数
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+//鼠标位置回调函数
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+//键盘输入回调函数
 void processInput(GLFWwindow* window);
+//帧缓存回调函数
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+//窗口回调函数
 void window_size_callback(GLFWwindow* window, int width, int height);
+//鼠标按钮回调函数
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+//纹理加载函数
 unsigned int loadTexture(char const* path);
 
 int LightTest() {
@@ -472,63 +478,13 @@ int LightCastersTest() {
     glfwTerminate();
     return 0;
 }
+//与此次实验内容相关函数
 int ModelLoaded() {
-
+    //初始化GLFW窗口并且指派OpenGL的版本为3.3
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3(0.7f,  0.2f,  2.0f),
-        glm::vec3(2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3(0.0f,  0.0f, -3.0f)
-    };
-    float vertices[] = {
-        // positions          // normals           // texture coords
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
 
     auto window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "3DGraphicWindow", NULL, NULL);
     if (!window) {
@@ -542,7 +498,13 @@ int ModelLoaded() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    //glViewport(0, 0, SCR_WIDTH / 2, SCR_HEIGHT / 2);
+    glViewport(SCR_WIDTH / 2, 0, SCR_WIDTH / 2, SCR_HEIGHT / 2);
+    //glViewport(SCR_WIDTH / 4, SCR_HEIGHT / 4, SCR_WIDTH / 2, SCR_HEIGHT / 2);
+    //glViewport(100, 50, 300, 300);
+    /*glViewport(SCR_WIDTH / 2 - 300 / 2, SCR_HEIGHT / 2 - 300 / 2, 300, 300) ;*/
+    //glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    //注册各种回调函数
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
@@ -550,14 +512,18 @@ int ModelLoaded() {
     glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     stbi_set_flip_vertically_on_load(true);
+    //启用深度测试
     glEnable(GL_DEPTH_TEST);
-    
-    Shader myLightShadfer("Shaders/Picking.vert", "Shaders/Picking.frag");
+    //创建三种着色器 
+    Shader myFrameBufferShader("Shaders/Picking.vert", "Shaders/Picking.frag");
     Shader myShader("Shaders/Model.vert", "Shaders/Model.frag");
     Shader mySimpleShader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+    //自定义的渲染项
     std::vector<RenderItem*> items;
     items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
+    //与拾取有关的类（GPU方法拾取）
     PickingTexture* pickingTexture = new PickingTexture();
+
     if (!pickingTexture->Init(SCR_WIDTH,SCR_HEIGHT)) {
         return false;
     }
@@ -566,32 +532,36 @@ int ModelLoaded() {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
         processInput(window);
-        
+        //启用自定义的帧缓存，接下来的操作都在自定义的帧缓存中进行
         pickingTexture->EnableWriting();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        myLightShadfer.use();
+        //启用自定义帧缓存着色器，设置MVP矩阵
+        myFrameBufferShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(myCamera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = myCamera->getViewMatrix();
-        myLightShadfer.setMat4("projection", projection);
-        myLightShadfer.setMat4("view", view);
+        myFrameBufferShader.setMat4("projection", projection);
+        myFrameBufferShader.setMat4("view", view);
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(0.2f, .2f, .2f));	// it's a bit too big for our scene, so scale it down
-        myLightShadfer.setMat4("model", model);
-
+        myFrameBufferShader.setMat4("model", model);
+        //遍历渲染项
         for (unsigned int i = 0; i < items.size(); i++) {
-            myLightShadfer.setUint("ModelIndex", i);
+            //设置该渲染项的索引
+            myFrameBufferShader.setUint("ModelIndex", i);
+            //启用拾取绘制，内容会被绘制到自定义帧缓存中，并且颜色缓存的值为Vec3(模型索引，网格索引，图元索引)
+            //图元索引在片元着色器中通过GLSL的内建变量gl_PrimitiveID获取
             items[i]->EnablePicking();
-            items[i]->Draw(myLightShadfer);
+            items[i]->Draw(myFrameBufferShader);
             items[i]->DisablePicking();
         }
+        //再切换为系统默认帧缓存
         pickingTexture->DisableWriting();
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        //启用模型着色器，设置MVP矩阵和平行光的方向、环境光、高光和漫反射的数值
         myShader.use();
         myShader.setMat4("projection", projection);
         myShader.setMat4("view", view);
@@ -602,26 +572,29 @@ int ModelLoaded() {
         myShader.setVec3("dirLight.ambient", 0.51f, 0.51f, 0.5f);
         myShader.setVec3("dirLight.diffuse", 0.99f, 0.99f, 0.99f);
         myShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-        // material properties
+        // 材质的光泽度
         myShader.setFloat("material.shininess", 32.0f);
-
+        //GLFW检测到鼠标左键被按下
         if (leftMouse.isPressed) {
+            //再次切换到自定义帧缓存，并根据鼠标位置读取对应的像素值到Pixel结构体中，读完之后自动切换回默认帧缓存
             PickingTexture::PixelInfo Pixel = pickingTexture->ReadPixel(leftMouse.x, SCR_HEIGHT - leftMouse.y - 1);
-            //printf("ObjectID:%u---DrawIndex:%u---PrimatyID:%u\n", (unsigned int)Pixel.ObjectID,
-            //    (unsigned int)Pixel.DrawID, (unsigned int)Pixel.PrimID);
             printf("ObjectID:%u---DrawIndex:%u---PrimatyID:%u\n", (unsigned int)Pixel.ObjectID,
                 (unsigned int)Pixel.DrawID, (unsigned int)Pixel.PrimID);
-
+            //如果点到的不是背景
             if (Pixel.PrimID != 0) {
+                //启用三角形绘制着色器，设置对应的MVP
                 mySimpleShader.use();
                 mySimpleShader.setMat4("projection", projection);
                 mySimpleShader.setMat4("view", view);
                 mySimpleShader.setMat4("model", model);
-                Shader* shader = &mySimpleShader;
+                //一下两个绘制函数可以启用一个，一个是使得被选中的网格体变成高亮，另一个是被选中的三角形变成高亮
                 items[Pixel.ObjectID]->Draw_Mesh_Onclicked(myShader, mySimpleShader, Pixel.DrawID);
-               /* items[Pixel.ObjectID]->Draw_Triangle_Onclicked(myShader, mySimpleShader, Pixel.DrawID, Pixel.PrimID - 1);*/
+                //Pixel中存放着被选中的物体模型、物体模型的网格、对应的绘制图元索引，这些像素值保存在用户自定义的颜色缓存中
+                //myFrameBufferShader的片元着色器负责绘制这些像素（FragColor=（ModelIndex，MeshIndex，gl_PrimitiveID+1))
+                /*items[Pixel.ObjectID]->Draw_Triangle_Onclicked(myShader, mySimpleShader, Pixel.DrawID, Pixel.PrimID - 1);*/
             }
         }
+        //如果鼠标左键没有点击，那么就默认渲染
         else
             for (unsigned int i = 0; i < items.size(); i++) {
                 items[i]->Draw(myShader);
@@ -670,7 +643,6 @@ unsigned int loadTexture(char const* path)
 
     return textureID;
 }
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
@@ -689,7 +661,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
         lastY = ypos;
         firstMouse = false;
     }
-
+    printf("XPOS:%lf\tYPOS:%lf\n", xpos, ypos);
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 

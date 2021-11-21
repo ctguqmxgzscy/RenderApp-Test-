@@ -9,6 +9,7 @@ public:
 public:
     void EnablePicking();
     void DisablePicking();
+    //绘制函数，可以使用EnablePicking()和DisablePicking()来控制是绘制到自定义的帧缓存还是系统帧缓存的颜色缓存中
     void Draw(Shader shader) { this->m_Model_->Draw(shader); }
     void Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex);
     void Draw_Triangle_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, 

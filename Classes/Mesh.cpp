@@ -51,13 +51,13 @@ void Mesh::Draw_Mesh_SimpleColor(Shader shader)
 {
 	glBindVertexArray(VAO);
 	shader.use();
-	glDrawElements(GL_POINTS, indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
 
 void Mesh::Draw_Triangle_SimpleColor(Shader _exclude_shader,Shader _simple_color_shader, unsigned int primitiveIndex)
 {
-	//Draw the mesh excluded the primitiveIndex.th triangle
+	//设定模型着色器的纹理贴图参数
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	unsigned int normalNr = 1;
@@ -81,11 +81,13 @@ void Mesh::Draw_Triangle_SimpleColor(Shader _exclude_shader,Shader _simple_color
 	glActiveTexture(GL_TEXTURE0);
 	_exclude_shader.use();
 	glBindVertexArray(VAO);
+	//绘制第primitiveIndex 个三角形以前的所有三角形
 	glDrawElements(GL_TRIANGLES, 3 * primitiveIndex, GL_UNSIGNED_INT, 0);
+	//绘制第primitiveIndex 个三角形以后的所有三角形
 	glDrawElements(GL_TRIANGLES, indices.size() - 3 * (primitiveIndex + 1), GL_UNSIGNED_INT,
 		(const GLvoid*)((primitiveIndex + 1) * 3 * sizeof(GLuint)));
 	glBindVertexArray(0);
-
+	//绘制被选中的第primitiveIndex个三角形，必须是填充模式绘制，
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(VAO);
 	_simple_color_shader.use();

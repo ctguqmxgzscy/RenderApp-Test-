@@ -16,8 +16,10 @@
 int main()
 {  
     //Basic_Test.h-----------------------------
-    /*return DrawGraphicPrimirary();*/
-    /*return DrawColorfulTriangle();*/
+    
+    //-------本次实验第一题-------
+    //return DrawTetrahedron();
+
     /*return GlmTest();*/
     /*return BasicTransform();*/
     /*return TextureTest();*/
@@ -25,6 +27,8 @@ int main()
     //Lighting_Test.h--------------------
     /*return LightTest();*/
     //return LightCastersTest();
+    
+    //-------本次实验第二题-------
     return ModelLoaded();
 }
 

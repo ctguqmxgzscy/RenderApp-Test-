@@ -24,85 +24,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-int DrawColorfulTriangle()
-{
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    auto window = glfwCreateWindow(SCR_HEIGHT, SCR_WIDTH, "3DGraphicWindow", NULL, NULL);
-    if (!window) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-    glViewport(0, 0, SCR_HEIGHT, SCR_WIDTH);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-#pragma region Data
-    float vertices[] = {
-    -0.5f,-0.5f,0.0f,   1.0f,0.f,0.f,
-    0.0f,0.5f,0.0f,     0.f,1.f,0.f,
-    0.5f,-0.5f,0.0f,    0.f,0.f,1.f
-    };
-    unsigned int indices[] = {
-        0,1,2
-    };
-#pragma endregion
-
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    auto myShader = new Shader("Shaders/triangle.vert", "Shaders/triangle.frag");
-
-    float xOffset;
-    float r, g, b;
-
-    while (!glfwWindowShouldClose(window))
-    {
-        processInput(window);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        xOffset = (sin(glfwGetTime()) / 2.0);
-        r = sin(glfwGetTime()) / 2.0;
-        g = cos(glfwGetTime()) / 2.0;
-        b = 1 - sin(glfwGetTime()) / 2.0;
-        glUniform1f(glGetUniformLocation(myShader->ID, "xOffset"), xOffset);
-        glUniform4f(glGetUniformLocation(myShader->ID, "outColor"), r, g, b, 1.0f);
-
-        myShader->use();
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glfwTerminate();
-    return 0;
-}  
 int TextureTest() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -318,7 +240,7 @@ int GlmTest() {
     myShader->use();
     myShader->setInt("texture1", 0);
     myShader->setInt("texture2", 1);
-
+    
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -525,164 +447,6 @@ int BasicTransform() {
     glfwTerminate();
     return 0;
 }
-int DrawGraphicPrimirary() {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    auto window = glfwCreateWindow(SCR_HEIGHT, SCR_WIDTH, "3DGraphicWindow", NULL, NULL);
-    if (!window) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-    glViewport(0, 0, SCR_HEIGHT, SCR_WIDTH);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-#pragma region Data
-    float vertices[] = {
-         -0.5f,0.5f,0.0f,
-         0.f,0.5f,0.0f,
-         0.5f,0.5f,0.0f,
-         0.5f,-0.5f,0.0f,
-         0.0f,-0.5f,0.0f,
-         -0.5f,-0.5f,0.0f
-    };
-    unsigned int indices[] = {
-        4,5,0,
-        1,2,3
-    };
-#pragma endregion
-
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    auto myShader = new Shader("Shaders/primary_graphic.vert", "Shaders/primary_graphic.frag");
-
-    while (!glfwWindowShouldClose(window))
-    {
-        processInput(window);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        myShader->use();
-        glBindVertexArray(VAO);
-        //图元绘制选择----------------------------------------------------------------------------------
-        //--------------------------------------------------GL_TRIANGLES
-        /*glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_POINTS(有点小，这个青色的点，得拖动窗口即可观察到)
-        /*glDrawElements(GL_POINTS, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_TRIANGLE_STRIP
-        /*glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_LINES
-        /*glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_LINE_LOOP
-        /*glDrawElements(GL_LINE_LOOP, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_LINE_STRIP
-        /*glDrawElements(GL_LINE_STRIP, 6, GL_UNSIGNED_INT, 0);*/
-        //--------------------------------------------------GL_TRIANGLE_FAN
-        glDrawElements(GL_QUADS, 6, GL_UNSIGNED_INT, 0);
-
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glfwTerminate();
-    return 0;
-}
-int DrawCircularShape() {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    auto window = glfwCreateWindow(SCR_HEIGHT, SCR_WIDTH, "3DGraphicWindow", NULL, NULL);
-    if (!window) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-    glViewport(0, 0, SCR_HEIGHT, SCR_WIDTH);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-#pragma region Data
-    float vertices[] = {
-         -0.5f,0.5f,0.0f,
-         0.f,0.5f,0.0f,
-         0.5f,0.5f,0.0f,
-         0.5f,-0.5f,0.0f,
-         0.0f,-0.5f,0.0f,
-         -0.5f,-0.5f,0.0f
-    };
-    unsigned int indices[] = {
-        4,5,0,
-        1,2,3
-    };
-#pragma endregion
-
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    auto myShader = new Shader("Shaders/primary_graphic.vert", "Shaders/primary_graphic.frag");
-
-    while (!glfwWindowShouldClose(window))
-    {
-        processInput(window);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        myShader->use();
-        glBindVertexArray(VAO);
-        glDrawElements(GL_LINE_LOOP, 6, GL_UNSIGNED_INT, 0);
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glfwTerminate();
-    return 0;
-}
 int CameraTest() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -866,6 +630,130 @@ int CameraTest() {
     glfwTerminate();
     return 0;
 }
+//-------------本次实验内容，四面体绘制函数--------------------
+int DrawTetrahedron() {
+#pragma region Init GLFW and GLAD
+    //------------初始化GLFW窗口---------------
+    glfwInit();
+    //-------提示GLFW窗口上下文的OpenGL版本为3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    //创建窗口，失败就终止
+    auto window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "3DGraphicWindow", NULL, NULL);
+    if (!window) {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    //更改上下文环境为当前窗口
+    glfwMakeContextCurrent(window);
+    //通过glad获得OpenGL各个函数接口的地址，glad对OpenGL函数的调用做了封装，方便调用
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "Failed to intialize GLAD" << std::endl;
+        return -1;
+    }
+    //设置视口大小
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    //设置window窗口禁用鼠标指针，设置鼠标指针位置、鼠标滚轮、帧缓存大小回调函数
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+#pragma endregion
+#pragma region Tetrahedron Data
+    //四面体顶点数组
+    float vertices[] = {
+        //     ---- 位置 ----       ---- 颜色 ----   
+        +0.0f,  +0.0f, +0.5f,   +1.0f, +0.0f, +0.0f,
+        +0.5f,  +0.0f, -0.5f,   +0.0f, +1.0f, +0.0f,
+        -0.5f,  +0.0f, -0.5f,   +0.0f, +0.0f, +1.0f,
+        +0.0f,  +0.5f, +0.0f,   +1.0f, +1.0f, +1.0f
+    };
+    //四面体索引数组
+    unsigned int indices[] = {
+        //第一个面
+            0,1,2,
+        //第二个面
+            0,1,3,
+        //第三个面
+            1,2,3,
+        //第四个面
+            2,3,0,
+    };
+#pragma endregion
+#pragma region Config VertexArrayObject|VertexBufferObject|ElementBufferObject
+    unsigned int VAO, VBO, EBO;
+    //----生成顶点数组对象、顶点缓冲对象，索引缓冲对象
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    //----为顶点缓冲对象，索引缓冲对象分配空间
+    //----将点缓冲对象，索引缓冲对象绑定到顶点数组对象中
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    //为GPU设置对顶点数组的描述（步长)，并配置顶点在着色器中的布局
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+#pragma endregion
+#pragma region Config the Shader
+    //new 一个 Shader 对象，能够设置着色器中的uniform变量从而实现
+    //CPU和GPU的数据通信
+    auto myShader = new Shader("Shaders/Tetrahedron.vert", "Shaders/Tetrahedron.frag");
+    myShader->use();
+#pragma endregion
+#pragma region MainLoop
+    while (!glfwWindowShouldClose(window))
+    {
+        //处理输入
+        processInput(window);
+        //获得每帧的时间差
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        //每帧开始前清除颜色缓存和深度缓存
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        //接下来的绘制工作由着色器myShader进行，因为OpenGL就是一个状态机
+        myShader->use();
+        //调用第三方库glm来实现model、view、projection矩阵
+        glm::mat4 model, view, projection;
+        //配置模型矩阵，使其每帧都转45度
+        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(45.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f));
+        //配置myCamera相机的viewMatrix为当前ViewMatrix
+        view = myCamera->getViewMatrix();
+        //设置透视矩阵，给出视椎体的FOV，屏幕宽高、近平面和远平面
+        projection = glm::perspective(glm::radians(myCamera->Zoom), 
+            (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+        //将这三个矩阵传入到GPU中
+        myShader->setMat4("model", model);
+        myShader->setMat4("view", view);
+        myShader->setMat4("projection", projection);
+
+        //绘制模型，将上下文的VertexArray绑定为VAO,并且通过索引绘制
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
+        //交换前后台缓冲，处理其他事件
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+#pragma endregion
+    //清理工作
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glfwTerminate();
+    return 0;
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -878,7 +766,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
     if (!hiddenMosue)
         return;
-    printf("This is MOuse:%d\n", hiddenMosue);
     if (firstMouse)
     {
         lastX = xpos;

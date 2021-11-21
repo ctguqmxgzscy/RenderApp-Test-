@@ -5,7 +5,9 @@ unsigned int TextureFromFile(const char* path, const std::string& directory, boo
 class Model {
 public:
 	Model(const char* path);
+	//绘制所有网格函数
 	void Draw(Shader shader);
+	//绘制除excluded_index之外的所有网格
 	void Draw(Shader shader,unsigned int excluded_index);
 public:
 	std::vector<Mesh>& get_Meshes() { return this->meshes; }

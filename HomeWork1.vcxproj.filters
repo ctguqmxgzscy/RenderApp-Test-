@@ -77,9 +77,6 @@
     <ClInclude Include="Classes\STBI.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Classes\OpenGL4_X.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Classes\Picking.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -103,10 +100,10 @@
     <None Include="Shaders\glm.vert">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
-    <None Include="Shaders\primary_graphic.frag">
+    <None Include="Shaders\Tetrahedron.frag">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
-    <None Include="Shaders\primary_graphic.vert">
+    <None Include="Shaders\Tetrahedron.vert">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\triangle.frag">
