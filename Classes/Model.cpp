@@ -19,6 +19,14 @@ void Model::Draw(Shader shader)
 	}
 }
 
+void Model::Draw_DefaultEffects(Shader shader) 
+{
+	for (unsigned int i = 0; i < meshes.size(); i++)
+	{
+			meshes[i].Draw_Mesh_SimpleColor(shader);
+	}
+}
+
 void Model::Draw(Shader shader, unsigned int excluded_index)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
@@ -78,6 +86,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		if (mesh->HasNormals()) {
 			vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y,
 				mesh->mNormals[i].z);
+		}
+		else {
+			printf("There is anymore normal!\n");
 		}
 
 		//检测网格是否拥有纹理坐标,有的话只获得第一组纹理坐标

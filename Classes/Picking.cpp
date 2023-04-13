@@ -1,5 +1,7 @@
 #include "Picking.h"
 
+int RenderItem::count = 0;
+
 PickingTexture::PickingTexture()
 {
     this->m_fbo = 0;
@@ -53,6 +55,37 @@ PickingTexture::PixelInfo PickingTexture::ReadPixel(unsigned int x, unsigned int
     return Pixel;
 }
 
+RenderItem::RenderItem(const char* str)
+{
+    char name[20];
+    m_Model_ = new Model(str); 
+    count++;
+    sprintf_s(name, "object_%d", count);
+    _name = std::string(name);
+    _shader = Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+}
+
+RenderItem::RenderItem()
+{
+    char name[20];
+    count++;
+    sprintf_s(name, "object_%d", count);
+    _name = std::string(name);
+    _shader = Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+}
+
+void RenderItem::Draw() {
+    if (_is_shader_loaded) {
+        _shader.use();
+        _shader.setMat4("model", this->model_mat);
+        this->m_Model_->Draw(_shader);
+    }
+    else {
+        _shader.use();
+        _shader.setMat4("model", this->model_mat);
+        this->m_Model_->Draw_DefaultEffects(_shader);
+    }
+}
 
 void RenderItem::EnablePicking()
 {
@@ -70,6 +103,7 @@ void RenderItem::DisablePicking()
     else
         printf("Your RenderItem have not any date to use!\n");
 }
+
 
 void RenderItem::Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex)
 {

@@ -7,6 +7,7 @@ public:
 	Model(const char* path);
 	//绘制所有网格函数
 	void Draw(Shader shader);
+	void Draw_DefaultEffects(Shader shader);
 	//绘制除excluded_index之外的所有网格
 	void Draw(Shader shader,unsigned int excluded_index);
 public:

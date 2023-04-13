@@ -37,7 +37,7 @@ class Mesh
 public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
-	std::vector<Texture> textures;
+	std::vector<Texture> textures; 
 public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,

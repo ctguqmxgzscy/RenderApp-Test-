@@ -1,8 +1,11 @@
 #version 330                                                                        
-                                                                                    
-layout(location = 0) out vec4 FragColor;                                            
-                                                                                    
+out vec4 FragColor;       
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec2 Tex;
+                                                                              
 void main()                                                                         
 {                                                                                   
-    FragColor = vec4(1.0, 0.0, 0.0, 1.0);                                        
+    FragColor = vec4(vec3(Normal), 1.0);                                        
 }
