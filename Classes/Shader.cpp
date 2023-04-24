@@ -136,3 +136,41 @@ void Shader::setMat4(const std::string& name, const glm::mat4& mat) const
 {
 	glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
+
+void Shader::setDirLight(const DirectionalLight& light) const
+{
+	this->setVec3("dirLight.direction", light.direction);
+	this->setVec3("dirLight.ambient", light.ambient);
+	this->setVec3("dirLight.diffuse", light.diffuse);
+	this->setVec3("dirLight.specular", light.specular);
+}
+
+void Shader::setPointLight(const PointLight& light) const
+{
+
+	this->setVec3("pointLight.position", light.position);
+	this->setVec3("pointLight.ambient", light.ambient);
+	this->setVec3("pointLight.diffuse", light.diffuse);
+	this->setVec3("pointLight.specular", light.specular);
+
+	this->setFloat("pointLight.constant", light.constant);
+	this->setFloat("pointLight.linear", light.linear);
+	this->setFloat("pointLight.quadratic", light.quadratic);
+
+}
+
+void Shader::setSpotLight(const SpotLight& light) const
+{
+	this->setVec3("spotLight.position", light.position);
+	this->setVec3("spotLight.direction", light.direction);
+
+	this->setVec3("spotLight.ambient", light.ambient);
+	this->setVec3("spotLight.diffuse", light.diffuse);
+	this->setVec3("spotLight.specular", light.specular);
+
+	this->setFloat("spotLight.constant", light.constant);
+	this->setFloat("spotLight.innerCutOut", light.innerCutOut);
+	this->setFloat("spotLight.outterCutOut", light.outterCutOut);
+	this->setFloat("spotLight.quadratic", light.quadratic);
+	this->setFloat("spotLight.linear", light.linear);
+}

@@ -2,10 +2,12 @@
 #include<cstdint>
 #include<vector>
 #include"Shader.h"
+#include"Material.h"
+
 #include"../glm/glm.hpp"
 #include"../glm/gtc/matrix_transform.hpp"
-#include"../glm/gtc/type_ptr.hpp"
-#include"Material.h"
+#include"../glm/gtc/quaternion.hpp"
+#include "../glm/gtx/quaternion.hpp"	
 
 using namespace glm;
 
@@ -115,11 +117,6 @@ public:
 	float scale[3] = { 1.0f,1.0f,1.0f };
 
 	mat4 model_mat;
-	float model_mat_value[16] = {
-					1.f, 0.f, 0.f, 0.f,
-					0.f, 1.f, 0.f, 0.f,
-					0.f, 0.f, 1.f, 0.f,
-					0.f, 0.f, 0.f, 1.f };
 
 	GeometryGenerator::MeshData meshData;
 	Material material;

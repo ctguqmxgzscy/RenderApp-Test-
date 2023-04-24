@@ -62,7 +62,7 @@ RenderItem::RenderItem(const char* str)
     count++;
     sprintf_s(name, "object_%d", count);
     _name = std::string(name);
-    _shader = Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+    _shader = new Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
 }
 
 RenderItem::RenderItem()
@@ -71,20 +71,24 @@ RenderItem::RenderItem()
     count++;
     sprintf_s(name, "object_%d", count);
     _name = std::string(name);
-    _shader = Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+    _shader = new Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
 }
 
 void RenderItem::Draw() {
-    if (_is_shader_loaded) {
-        _shader.use();
-        _shader.setMat4("model", this->model_mat);
-        this->m_Model_->Draw(_shader);
+    if (this->m_Model_) {
+        if (_is_shader_loaded) {
+            _shader->use();
+            _shader->setMat4("model", this->transform.getModelMat());
+            this->m_Model_->Draw(*_shader);
+        }
+        else {
+            _shader->use();
+            _shader->setMat4("model", this->transform.getModelMat());
+            this->m_Model_->Draw_DefaultEffects(*_shader);
+        }
     }
-    else {
-        _shader.use();
-        _shader.setMat4("model", this->model_mat);
-        this->m_Model_->Draw_DefaultEffects(_shader);
-    }
+    else
+         return;
 }
 
 void RenderItem::EnablePicking()

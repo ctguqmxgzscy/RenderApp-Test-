@@ -31,6 +31,12 @@
     <Filter Include="头文件\imgui">
       <UniqueIdentifier>{f847c042-fb2e-4120-ab1d-ffe1fe13c113}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\Shaders\Effects">
+      <UniqueIdentifier>{625ac222-d5c7-4b5f-b242-d8e3443ce5e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\Shaders\Effects\Skybox">
+      <UniqueIdentifier>{a46a2241-155f-41ef-b4f6-325c0bf85da9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -82,6 +88,9 @@
       <Filter>头文件\imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui\ImGuizmo.cpp">
+      <Filter>头文件\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\ImFileDialog.cpp">
       <Filter>头文件\imgui</Filter>
     </ClCompile>
   </ItemGroup>
@@ -146,14 +155,14 @@
     <ClInclude Include="imgui\imgui_impl_opengl3_loader.h">
       <Filter>头文件\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="Classes\UI.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="imgui\ImGuizmo.h">
       <Filter>头文件\imgui</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Utility.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\ImFileDialog.h">
+      <Filter>头文件\imgui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -241,6 +250,12 @@
     </None>
     <None Include="Shaders\SimpleModel.frag">
       <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\skybox.vert">
+      <Filter>资源文件\Shaders\Effects\Skybox</Filter>
+    </None>
+    <None Include="Shaders\skybox.frag">
+      <Filter>资源文件\Shaders\Effects\Skybox</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

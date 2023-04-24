@@ -13,27 +13,19 @@
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 RenderApp* app;
 
 int main()
 {  
-
     app = new RenderApp();
 
-    glfwSetFramebufferSizeCallback(app->getWindow(), framebuffer_size_callback);
     glfwSetScrollCallback(app->getWindow(), scroll_callback);
     glfwSetCursorPosCallback(app->getWindow(), mouse_callback);
     glfwSetMouseButtonCallback(app->getWindow(), mouse_button_callback);
-    app->gui_setting(app->getWindow());
+    app->SetGUI();
 
     return app->Run();
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
 }
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {

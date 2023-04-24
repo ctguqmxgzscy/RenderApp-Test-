@@ -37,7 +37,8 @@ struct SpotLight{
     float quadratic;
 
     vec3 position;
-    vec3 center;
+    vec3 direction;
+
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -46,7 +47,7 @@ struct SpotLight{
 
 uniform vec3 viewPos;
 uniform DirLight dirLight;
-uniform PointLight pointLights[NUM_POINT_LIGHTS];
+uniform PointLight pointLight;
 uniform SpotLight spotLight;
 uniform Material material;
 
@@ -59,7 +60,7 @@ void main()
 {
     vec3 viewDir = normalize(viewPos-FragPos);
     vec3 normal = normalize(Normal);
-    vec3 result = CalcDirLight(dirLight,normal,viewDir);
+    vec3 result = CalcDirLight(dirLight,normal,viewDir) + CalcPointLight(pointLight,normal,FragPos,viewDir);
     FragColor = vec4(result,1.0f);
 } 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
@@ -104,7 +105,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos,vec3 viewDir){
     vec3 temp = normalize(lightDir+viewDir);
     float spec = pow(max(dot(temp,normal),0.0),material.shininess);
     //limit
-    float theta = max(dot(-lightDir,normalize(light.center)),0.0);
+    float theta = dot(lightDir,normalize(-light.direction));
     float epsilon = light.innerCutOut-light.outterCutOut;
     float intensity = clamp((theta-light.outterCutOut)/epsilon,0.0f,1.0f);
     //attenuation

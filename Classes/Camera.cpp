@@ -23,7 +23,7 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY, float u
 
 glm::mat4 Camera::getViewMatrix() {
 	//return glm::lookAt(this->Position, this->Position + this->Front, this->UpWorld);
-	return glm::lookAt(this->Position, glm::vec3(0.0f, 0.0f, 0.0f), this->UpWorld);
+	return glm::lookAt(this->Position, this->At, this->UpWorld);
 }
 
 glm::mat4 Camera::getProjectionMatrix() {
