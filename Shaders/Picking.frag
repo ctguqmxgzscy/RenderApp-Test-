@@ -1,12 +1,12 @@
-//#version 410                                                                        
-//#extension GL_EXT_gpu_shader4 : enable  
-
-#version 330
+#version 330 core
 
 uniform uint ModelIndex;
 uniform uint MeshIndex;
+uniform float MeshSize;
+uniform float IndicesSize;
+
 out vec3 FragColor;
 void main()
 {
-        FragColor = vec3(float(ModelIndex), float(MeshIndex),float( gl_PrimitiveID + 1));
+        FragColor = vec3(float(ModelIndex), float(MeshIndex/MeshSize),float( (gl_PrimitiveID + 1)/IndicesSize));
 }

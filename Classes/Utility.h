@@ -4,6 +4,8 @@
 #include"../imgui/imgui_internal.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
+
+//box data
 float skyboxVertices[] = {
 	// positions          
 	-1.0f,  1.0f, -1.0f,
@@ -48,6 +50,92 @@ float skyboxVertices[] = {
 	-1.0f, -1.0f,  1.0f,
 	 1.0f, -1.0f,  1.0f
 };
+//plane data
+float planeVertices[] = {
+
+	//     ---- 位置 ----      - 纹理坐标 -
+	 1.f,  1.f, 0.0f,    1.0f, 1.0f,   // 右上
+	 1.f, -1.f, 0.0f,    1.0f, 0.0f,   // 右下
+	-1.f,  1.f, 0.0f,    0.0f, 1.0f,    // 左上
+
+	 1.f, -1.f, 0.0f,    1.0f, 0.0f,   // 右下
+	-1.f, -1.f, 0.0f,    0.0f, 0.0f,   // 左下
+	-1.f,  1.f, 0.0f,    0.0f, 1.0f    // 左上
+};
+
+struct LeftMouse {
+	int x;
+	int y;
+	bool isPressed;
+	LeftMouse()
+	{
+		isPressed = false;
+	}
+	~LeftMouse(){}
+};
+
+enum EffectFlags
+{
+	INVERSION_EFFECT,
+	GRAYSCALE_EFFECT,
+	SHARPEN_EFFECT,
+	BLUR_EFFECT,
+	EDGE_DETECTION_EFFECT
+};
+
+struct WindowFlags
+{
+	//Other Windows' Flag
+	//Camera Window Flags
+	bool camera_window_open = false;
+	bool shouldLookAtCurItem = false;
+	//Light Window Flags
+	bool light_window_open = false;
+	bool isLightOn = true;
+	bool isLightCastersOn[3] = { true,false,false };
+	//Skybox Window Flags
+	bool skybox_window_open = false;
+	bool isSkyboxOn = false;
+	//Effect Window Flags
+	bool effect_window_open = false;
+	bool isEffectOn = false;
+	EffectFlags effectFlags;
+
+};
+
+struct WindowResources
+{
+	unsigned int trans_icon;
+	unsigned int rotate_icon;
+	unsigned int scale_icon;
+	unsigned int camera_icon;
+	unsigned int light_icon;
+	unsigned int skybox_icon;
+	unsigned int effect_icon;
+
+	std::vector<std::string> skybox_faces
+	{
+		"Resources/skybox/right.jpg",
+		"Resources/skybox/left.jpg",
+		"Resources/skybox/top.jpg",
+		"Resources/skybox/bottom.jpg",
+		"Resources/skybox/front.jpg",
+		"Resources/skybox/back.jpg"
+	};
+
+	unsigned int skybox_textures[6];
+};
+
+std::string skybox_dialogs[6] =
+{
+	"SkyboxTopImageOpenDialog",
+	"SkyboxLeftImageOpenDialog",
+	"SkyboxFrontImageOpenDialog",
+	"SkyboxRightImageOpenDialog",
+	"SkyboxBackImageOpenDialog",
+	"SkyboxBottomImageOpenDialog"
+};
+
 
 // loads a cubemap texture from 6 individual texture faces
 // order:
@@ -212,7 +300,6 @@ void LookAt(const float* eye, const float* at, const float* up, float* m16)
 	m16[14] = -Dot(Z, eye);
 	m16[15] = 1.0f;
 }
-
 
 void OrthoGraphic(const float l, float r, float b, const float t, float zn, const float zf, float* m16)
 {

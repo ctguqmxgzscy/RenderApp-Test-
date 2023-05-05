@@ -5,6 +5,7 @@ unsigned int TextureFromFile(const char* path, const std::string& directory, boo
 class Model {
 public:
 	Model(const char* path);
+	~Model();
 	//绘制所有网格函数
 	void Draw(Shader shader);
 	void Draw_DefaultEffects(Shader shader);

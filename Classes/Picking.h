@@ -104,6 +104,7 @@ public:
 public:
     RenderItem(const char* str);
     RenderItem();
+	~RenderItem();
 public:
     void EnablePicking();
     void DisablePicking();
@@ -112,7 +113,7 @@ public:
     void Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex);
     void Draw_Triangle_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, 
         unsigned int drawIndex,unsigned int primitiveIndex);
-
+	bool haveDrenderData() { if (this->m_Model_) return true; return false; }
 public:
 	//Scene Graph
 	std::list<std::unique_ptr<RenderItem>> children;
@@ -163,14 +164,14 @@ public:
     void setName(std::string name) {this->_name = name;}
     bool isDisabled() { return this->_is_diabled; }
     bool* getDisabled() { return &_is_diabled; }
-	void setShader(Shader* shader) { delete this->_shader; _shader = shader; _is_shader_loaded = true; }
+	void setShader(Shader* shader) { _shader = shader; _is_shader_loaded = true; }
     Shader* getShader() { return this->_shader; }
 };
 
 class PickingTexture {
 public:
     PickingTexture();
-    ~PickingTexture();
+	~PickingTexture() { glDeleteFramebuffers(1, &m_fbo); };
     bool Init(unsigned int WindowWidth, unsigned int WindowHeight);
     void EnableWriting() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo); }
     void DisableWriting() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); }
@@ -185,6 +186,7 @@ public:
         }
     };
     PixelInfo ReadPixel(unsigned int x, unsigned int y);
+	unsigned int getPickingTexture() { return this->m_pickingTexture; }
 private:
     unsigned int m_fbo;
     unsigned int m_pickingTexture;

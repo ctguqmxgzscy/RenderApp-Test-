@@ -125,3 +125,39 @@ public:
 	void setPointLight(const PointLight& light)const;
 	void setSpotLight(const SpotLight& light)const;
 };
+
+
+struct ShaderManager
+{
+	Shader* picking_shader;
+	Shader* default_shader;
+	Shader* skybox_shader;
+	//Effect Shader
+	Shader* cur_effect_shader;
+	Shader* inversion_shader;
+	Shader* grayscale_shader;
+	Shader* sharpen_shader;
+	Shader* blur_shader;
+	Shader* edge_detection_shader;
+	ShaderManager()
+	{
+		//Skybox shader
+		skybox_shader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
+		//Default shader
+		default_shader = new Shader("Shaders/model.vert", "Shaders/model.frag");
+		//picking shader
+		picking_shader = new Shader("Shaders/Picking.vert", "Shaders/Picking.frag");
+		//effects shader
+		//1st Inversion Effect
+		inversion_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Inversion.frag");
+		//2nd Grayscale Effect
+		grayscale_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Grayscale.frag");
+		//3rd Sharpen Effect
+		sharpen_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Sharpen.frag");
+		//4th Blur Effect
+		blur_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Blur.frag");
+		//5th Edge-Detection Effect
+		edge_detection_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Edge-Detection.frag");
+		cur_effect_shader = inversion_shader;
+	}
+};

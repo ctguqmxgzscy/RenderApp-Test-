@@ -6,8 +6,21 @@ Model::Model(const char* path)
 	loadModel(path);
 }
 
+Model::~Model()
+{
+	this->directory.clear();
+	this->meshes.clear();
+	this->textures_loaded.clear();
+}
+
 void Model::Draw(Shader shader)
 {
+	if (this->isPicking)
+	{
+		shader.use();
+		shader.setFloat("MeshSize", this->meshes.size());
+	}
+
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
 		if (this->isPicking) {
@@ -57,6 +70,9 @@ void Model::loadModel(std::string const &path)
 		return;
 	}
 	directory = path.substr(0, path.find_last_of('/'));
+	//absolute path
+	if (directory == path)
+		directory = path.substr(0, path.find_last_of('\\'));
 	processNode(scene->mRootNode, scene);
 }
 

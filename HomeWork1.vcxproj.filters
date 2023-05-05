@@ -37,6 +37,12 @@
     <Filter Include="资源文件\Shaders\Effects\Skybox">
       <UniqueIdentifier>{a46a2241-155f-41ef-b4f6-325c0bf85da9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\Shaders\Effects\Picking">
+      <UniqueIdentifier>{eb76dd93-a9b6-440e-b465-288e7e20dcf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\Shaders\Effects\PostProcessing">
+      <UniqueIdentifier>{e77a7aad-9793-4cdd-8f78-5e72e3b1cc96}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -227,18 +233,6 @@
     <None Include="Shaders\Model.frag">
       <Filter>资源文件\Shaders\Model_testShaders</Filter>
     </None>
-    <None Include="Shaders\Picking.frag">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
-    <None Include="Shaders\Picking.vert">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
-    <None Include="Shaders\simple_color.vert">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
-    <None Include="Shaders\simple_color.frag">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
     <None Include="Shaders\blendShader.vert">
       <Filter>资源文件\Shaders\Lighting_testShaders</Filter>
     </None>
@@ -256,6 +250,33 @@
     </None>
     <None Include="Shaders\skybox.frag">
       <Filter>资源文件\Shaders\Effects\Skybox</Filter>
+    </None>
+    <None Include="Shaders\Picking.frag">
+      <Filter>资源文件\Shaders\Effects\Picking</Filter>
+    </None>
+    <None Include="Shaders\Picking.vert">
+      <Filter>资源文件\Shaders\Effects\Picking</Filter>
+    </None>
+    <None Include="Shaders\simple_color.frag">
+      <Filter>资源文件\Shaders\Effects\Picking</Filter>
+    </None>
+    <None Include="Shaders\simple_color.vert">
+      <Filter>资源文件\Shaders\Effects\Picking</Filter>
+    </None>
+    <None Include="Shaders\Inversion.frag">
+      <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
+    </None>
+    <None Include="Shaders\Blur.frag">
+      <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
+    </None>
+    <None Include="Shaders\Edge-Detection.frag">
+      <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
+    </None>
+    <None Include="Shaders\Sharpen.frag">
+      <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
+    </None>
+    <None Include="Shaders\Grayscale.frag">
+      <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -9,6 +9,17 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	setupMesh();
 }
 
+//Mesh::~Mesh()
+//{
+//	glDeleteVertexArrays(1, &VAO);
+//	glDeleteBuffers(1, &EBO);
+//	glDeleteBuffers(1, &VBO);
+//
+//	vertices.clear();
+//	textures.clear();
+//	indices.clear();
+//}
+
 void Mesh::Draw(Shader shader)
 {
 	unsigned int diffuseNr = 1;
@@ -43,6 +54,7 @@ void Mesh::Draw_PickingEffects(Shader shader,unsigned int i)
 	glBindVertexArray(VAO);
 	shader.use();
 	shader.setUint("MeshIndex", i);
+	shader.setUint("IndicesSize", indices.size());
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }

@@ -30,6 +30,12 @@ struct Texture
 	unsigned int id;
 	std::string type;
 	aiString path;
+
+	~Texture()
+	{
+		type.clear();
+		path.Clear();
+	}
 };
 
 class Mesh
@@ -42,6 +48,7 @@ public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 		std::vector<Texture> textures);
+	//~Mesh();
 	 unsigned int& get_VAO() { return this->VAO; }
 	 unsigned int& get_VBO() { return this->VBO; }
 	 unsigned int& get_EBO() { return this->EBO; }

@@ -23,70 +23,40 @@
 #include "../imgui/imgui_internal.h"
 #include "../imgui/ImGuizmo.h"
 #include "../imgui/ImFileDialog.h"
+#include "Utility.h"
 
 float camDistance = 8.f;
-std::string skybox_dialogs[6] =
-{
-    "SkyboxTopImageOpenDialog",
-    "SkyboxLeftImageOpenDialog",
-    "SkyboxFrontImageOpenDialog",
-    "SkyboxRightImageOpenDialog",
-    "SkyboxBackImageOpenDialog",
-    "SkyboxBottomImageOpenDialog"
-};
-
-struct WindowResources
-{
-    unsigned int trans_icon;
-    unsigned int rotate_icon;
-    unsigned int scale_icon;
-    unsigned int camera_icon;
-    unsigned int light_icon;
-    unsigned int skybox_icon;
-
-    std::vector<std::string> skybox_faces
-    {
-        "Resources/skybox/right.jpg",
-        "Resources/skybox/left.jpg",
-        "Resources/skybox/top.jpg",
-        "Resources/skybox/bottom.jpg",
-        "Resources/skybox/front.jpg",
-        "Resources/skybox/back.jpg"
-    };
-
-    unsigned int skybox_textures[6];
-};
 
 class RenderApp
 {
-
 private:
+
     GLFWwindow* window;
+
     WindowResources* resources;
+    WindowFlags* windowFlags;
     LightManager* lightManager;
+    ShaderManager* shaderManager;
+
+    PickingTexture* pickingTexture;
+    LeftMouse* leftMouse;
 
     std::vector<RenderItem*> items;
-    Camera* cur_camera;
-    Shader* default_shader;
-    RenderItem* cur_item;
+    RenderItem* cur_item = nullptr;
     RenderItem* empty_item;
-    //Skybox
-    Shader* skybox_shader;
+    Camera* cur_camera;
+
+    //Skybox VAO,VBO and TextureID
     size_t skyboxVAO, skyboxVBO, skyboxTextureID;
-    //Custom Framebuffer
+    //ScreenTexture VAO,VBO
+    size_t  screenVAO, screenVBO;
+    //Custom Framebuffer and texture
     size_t m_fbo, m_texture;
+    //Effecs Framebuffer and texture
+    size_t screenFbo, screenTexture;
     //3D Gizmo Manipulation
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     ImGuizmo::MODE mCurrentGizmoMode;
-    //Module Window Flag
-    bool camera_window_open = false;
-    bool light_window_open = false;
-    bool skybox_window_open = false;
-    bool isSkyboxOn = false;
-    bool isLightOn = true;
-    bool isLightCastersOn[3] = { true,false,false };
-    bool shouldLookAtCurItem = false;
-
 public:
     int SCR_WIDTH = 1920;
     int SCR_HEIGHT = 1080;
@@ -94,8 +64,6 @@ public:
 
     bool firstMouse = true;
     bool hiddenMosue = false;
-
-    bool isPressed = false;
 
     float deltaTime = 0.0f; // 当前帧与上一帧的时间差
     float lastFrame = 0.0f; // 上一帧的时间
@@ -118,33 +86,16 @@ private:
     void DrawCameraToolWindow();
     void DrawLightToolWindow();
     void DrawSkyboxToolWindow();
+    void DrawEffectToolWindow();
     //OpenGL DrawCallback
     void draw_callback(GLFWwindow* window);
 public:
     GLFWwindow* getWindow() { return this->window; }
     Camera* getCamera() { return this->cur_camera; }
-    std::vector<RenderItem*> getItems() { return this->items; }
+    LeftMouse* getLeftMouse() { return this->leftMouse; }
     RenderItem* getCurRenderItem() { return this->cur_item; }
     ImVec2 viewport_pos, viewport_size;
 };
-
-RenderApp::RenderApp()
-{
-
-    resources = new WindowResources();
-    lightManager = new LightManager();
-    
-    if (!RenderApp::Init()) {
-        std::cout << "Init Failure!" << std::endl;
-    }
-
-    cur_camera = new Camera();
-    empty_item = new RenderItem();
-}
-
-RenderApp::~RenderApp()
-{
-}
 
 int RenderApp::Init()
 {
@@ -169,30 +120,31 @@ int RenderApp::Init()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
+    //Load texture for each icon
     resources->trans_icon = LoadTexture("Resources/Icon/trans_icon.png");
     resources->rotate_icon = LoadTexture("Resources/Icon/rotate_icon.png");
     resources->scale_icon = LoadTexture("Resources/Icon/scale_icon.png");
     resources->camera_icon = LoadTexture("Resources/Icon/camera_icon.png");
     resources->light_icon = LoadTexture("Resources/Icon/light_icon.png");
-    resources->skybox_icon = LoadTexture("Resources/Icon/skybox_icon.png");
-    
+    resources->skybox_icon = LoadTexture("Resources/Icon/skybox_icon.png");  
+    resources->effect_icon = LoadTexture("Resources/Icon/effect_icon.png");
     //Load texture for each face
     for (size_t i = 0; i < 6; i++)
         resources->skybox_textures[i] = LoadTexture(resources->skybox_faces[i].c_str());
-    
-
+    //Init picking texture
+    pickingTexture->Init(SCR_WIDTH, SCR_HEIGHT);
+    //Init custom framebuffer
     CreateFBO(SCR_WIDTH,SCR_HEIGHT);
 }
+
 int RenderApp::Run() {
 
     items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
     items.push_back(new RenderItem());
     items.push_back(new RenderItem());  
     //skybox shader,VAO,VBO
-    skybox_shader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
-    skybox_shader->use();
-    skybox_shader->setInt("skybox", 0);
+    shaderManager->skybox_shader->use();
+    shaderManager->skybox_shader->setInt("skybox", 0);
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
     glBindVertexArray(skyboxVAO);
@@ -200,13 +152,22 @@ int RenderApp::Run() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    //Default shader
-    default_shader = new Shader("Shaders/model.vert", "Shaders/model.frag");
-    default_shader->use();
-    default_shader->setFloat("material.shininess", 32.f);
-    default_shader->setDirLight(*(lightManager->dirLight));
-    default_shader->setPointLight(*(lightManager->pointLight));
-    items[0]->setShader(default_shader);
+    //ScreenTexture VAO,VBO
+    shaderManager->inversion_shader->setUint("ScreenTexture", 0);
+    glGenVertexArrays(1, &screenVAO);
+    glGenBuffers(1, &screenVBO);
+    glBindVertexArray(screenVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, screenVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    //Default shader    
+    shaderManager->default_shader->use();
+    shaderManager->default_shader->setFloat("material.shininess", 32.f);
+    shaderManager->default_shader->setDirLight(*(lightManager->dirLight));
+    shaderManager->default_shader->setPointLight(*(lightManager->pointLight));
     //skybox texture
     skyboxTextureID = loadCubemap(resources->skybox_faces);
     ImGuiIO& io = ImGui::GetIO();
@@ -231,8 +192,10 @@ int RenderApp::Run() {
         GLuint texID = (GLuint)((uintptr_t)tex);
         glDeleteTextures(1, &texID);
     };
-
-
+    //config global context
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    
     //MainLoop
     while (!glfwWindowShouldClose(window))
     {
@@ -254,31 +217,26 @@ int RenderApp::Run() {
         DrawObjectWindow();
         SetViewport();
 
-        if (camera_window_open)
+        if (windowFlags->camera_window_open)
         {
             ImGui::SetNextWindowSize(ImVec2(600, 600));
             DrawCameraToolWindow();
         }
 
-        if (light_window_open)
+        if (windowFlags->light_window_open)
         {
             ImGui::SetNextWindowSize(ImVec2(800, 800));
             DrawLightToolWindow();
         }
 
-        // file dialogs
-        if (ifd::FileDialog::Instance().IsDone("ShaderOpenDialog")) {
-            if (ifd::FileDialog::Instance().HasResult()) {
-                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
-                for (const auto& r : res) // ShaderOpenDialog supports multiselection
-                    printf("OPEN[%s]\n", r.u8string().c_str());
-            }
-            ifd::FileDialog::Instance().Close();
-        }
-
-        if (skybox_window_open)
+        if (windowFlags->skybox_window_open)
         {
             DrawSkyboxToolWindow();
+        }
+
+        if (windowFlags->effect_window_open)
+        {
+            DrawEffectToolWindow();
         }
 
         ImGui::Render();
@@ -293,7 +251,7 @@ int RenderApp::Run() {
 
         draw_callback(window);
        
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window);    
         glfwPollEvents();
     }
     // Cleanup
@@ -400,6 +358,9 @@ void RenderApp::SetViewport() {
     ImGuizmo::SetDrawlist();
     float windowWidth = (float)ImGui::GetWindowWidth();
     float windowHeight = (float)ImGui::GetWindowHeight();
+    float windowPosX = (float)ImGui::GetWindowPos().x;
+    float windowPosY = (float)ImGui::GetWindowPos().y;
+
     ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
 
     viewManipulateRight = ImGui::GetWindowPos().x + windowWidth;
@@ -411,12 +372,18 @@ void RenderApp::SetViewport() {
     auto camera_view = (float*)glm::value_ptr(cur_camera->getViewMatrix());
     auto camera_projection = (float*)glm::value_ptr(cur_camera->getProjectionMatrix());
 
-    float p_min_x = viewport_window->InnerRect.Max.x;
+    float p_min_x = viewport_window->InnerRect.Max.x; 
     float p_min_y = viewport_window->InnerRect.Max.y;
     float p_max_x = viewport_window->InnerRect.Min.x;
     float p_max_y = viewport_window->InnerRect.Min.y;
     //ImGuizmo::DrawGrid(camera_view, camera_projection, glm::value_ptr(glm::mat4(1.0f)), 100.f);
-    ImGui::GetWindowDrawList()->AddImage((void*)m_texture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
+    if (windowFlags->isEffectOn)
+    {
+        ImGui::GetWindowDrawList()->AddImage((void*)screenTexture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
+    }
+    else
+        //ImGui::GetWindowDrawList()->AddImage((void*)m_texture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
+    ImGui::GetWindowDrawList()->AddImage((void*)pickingTexture->getPickingTexture(), ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
 
     if (cur_item) 
     {
@@ -428,6 +395,24 @@ void RenderApp::SetViewport() {
     }  
     ImGui::End();
     style.WindowPadding = ImVec2(6, 6);
+
+    if (leftMouse->isPressed)
+    {
+        double scale_x = SCR_WIDTH / windowWidth;
+        double scale_y = SCR_HEIGHT / windowHeight; 
+
+        double read_x, read_y;
+        read_x = ImGui::GetMousePos().x - windowPosX;
+        read_y = ImGui::GetMousePos().y - windowPosY;
+        read_x *= scale_x;
+        read_y *= scale_y;
+
+        PickingTexture::PixelInfo Pixel = pickingTexture->ReadPixel(read_x, SCR_HEIGHT - read_y - 1);
+        if (Pixel.PrimID != 0 && items.size())
+            cur_item = items[Pixel.ObjectID];
+
+    }
+
 }
 
 void RenderApp::DrawObjectWindow() {
@@ -471,9 +456,7 @@ void RenderApp::DrawObjectWindow() {
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("S.z", &scale[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::PopItemWidth();
-
             }
-
             trans.setNewPosition(glm::vec3(pos[0], pos[1], pos[2]));
             trans.setNewRotation(glm::vec3(eular[0], eular[1], eular[2]));
             trans.setNewScale(glm::vec3(scale[0], scale[1], scale[2]));
@@ -545,8 +528,6 @@ void RenderApp::DrawObjectWindow() {
     {
         //Create a window
         ImGui::Begin(u8"物体列表", 0, ImGuiWindowFlags_NoCollapse);
-        //Get RenderItems
-        auto items = this->getItems();
         //Set Style
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
         //Draw ObjectLists
@@ -557,31 +538,38 @@ void RenderApp::DrawObjectWindow() {
             ImGui::Dummy(ImVec2(h, h));
             ImGui::SameLine();
             unsigned int textureId = LoadTexture("Resources/Icon/object.png");
+            size_t flag = 0;
             //Draw Object Icon
             ImGui::Image((void*)textureId, ImVec2(h, h));
             ImGui::SameLine();
             //Draw Object[i]
-            bool expanded = ImGui::TreeNodeEx((void*)i, 0, "%s", items[i]->getName().c_str());
-            //按下鼠标右键后且悬停到对应的结点后
-            if (ImGui::BeginPopupContextItem()) {
-                if (ImGui::BeginMenu("Option 1")) {
-                    std::string str = std::to_string(i);
-                    ImGui::MenuItem(str.c_str());
-                    ImGui::EndMenu();
-                }
-                if (ImGui::BeginMenu("Option 2")) ImGui::EndMenu();
-                ImGui::EndPopup();
-            }
+
+            if (cur_item && cur_item == items[i])
+                flag = ImGuiTreeNodeFlags_Selected;
+
+            bool expanded = ImGui::TreeNodeEx((void*)i, flag, "%s", items[i]->getName().c_str());
             //该结点若展开
-            if (expanded && items[i]->children.empty()) {
+            if (expanded && items[i] && items[i]->children.empty())
+            {
                 cur_item = items[i];
                 ImGui::TreePop();
             }
+            //按下鼠标右键后且悬停到对应的结点后
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem("Add")) {
+                    std::string str = std::to_string(i);
+                    ImGui::MenuItem(str.c_str());
+                }
+                if (ImGui::MenuItem("Delete"))
+                    items.erase(items.begin() + i);
+                ImGui::EndPopup();
+            }
+
         }
         ImGui::PopStyleVar();
         ImGui::End();
     }
-
+    
 }
 
 void RenderApp::DrawMainMenuWindow()
@@ -650,14 +638,21 @@ void RenderApp::DrawMainMenuWindow()
                 ImGui::Checkbox("SomeOption", &b);
                 ImGui::EndMenu();
             }
+            if (ImGui::MenuItem("Load Model"))
+            {
+                ifd::FileDialog::Instance().Open("ModelFileDialog", "Open A Model Image",
+                    "Model file (*.obj;*.3ds;*.blend;){.obj,.3ds,.blend},.*", true);
 
+            }
             if (ImGui::BeginMenu("Disabled", false)) // Disabled
             {
                 IM_ASSERT(0);
             }
             if (ImGui::MenuItem("Checked", NULL, true)) {}
             ImGui::Separator();
-            if (ImGui::MenuItem("Quit", "Alt+F4")) {}
+            if (ImGui::MenuItem("Quit", "Alt+F4")) 
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit"))
@@ -671,6 +666,18 @@ void RenderApp::DrawMainMenuWindow()
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+
+        if (ifd::FileDialog::Instance().IsDone("ModelFileDialog")) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                //old pic will be replaced with new pic
+                if (res.size() == 1)
+                {
+                    items.push_back(new RenderItem(res[0].u8string().c_str()));
+                }
+            }
+            ifd::FileDialog::Instance().Close();
+        }
     }     
 }
 
@@ -695,7 +702,7 @@ void RenderApp::DrawToolWindow()
         if (ImGui::IsItemHovered())
         {
             //if pressed, no bgcolor
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImGui::SetTooltip("Move");
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
@@ -713,7 +720,7 @@ void RenderApp::DrawToolWindow()
         ImGui::Image((void*)resources->rotate_icon, item_size);
         if (ImGui::IsItemHovered())
         {
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
@@ -730,7 +737,7 @@ void RenderApp::DrawToolWindow()
         ImGui::Image((void*)resources->scale_icon, item_size);
         if (ImGui::IsItemHovered())
         {
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
@@ -750,7 +757,7 @@ void RenderApp::DrawToolWindow()
         | ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_Borders;
     ImGui::Dummy(ImVec2(quater_h, 50));
     ImGui::SameLine();
-    if (ImGui::BeginTable("Other_Icons Table", 6, flags, ImVec2(item_size.x * 10, item_size.y)))
+    if (ImGui::BeginTable("Other_Icons Table", 8, flags, ImVec2(item_size.x * 10, item_size.y)))
     {
         ImGui::TableNextColumn();
         ImGui::Dummy(ImVec2(10, 10));
@@ -760,7 +767,7 @@ void RenderApp::DrawToolWindow()
         if (ImGui::IsItemHovered())
         {
             //if pressed, no bgcolor
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImGui::SetTooltip("Camera");
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
@@ -768,9 +775,7 @@ void RenderApp::DrawToolWindow()
             }
             //if clicked, show camera window
             if (ImGui::IsItemClicked())
-                camera_window_open = true;
-
-
+                windowFlags->camera_window_open = true;
         }
         //fill the gap between cameraIcon and lightIcon
         ImGui::TableNextColumn();
@@ -780,14 +785,14 @@ void RenderApp::DrawToolWindow()
         ImGui::Image((void*)resources->light_icon, item_size);
         if (ImGui::IsItemHovered())
         {
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImGui::SetTooltip("Light");
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
             }
             if (ImGui::IsItemClicked())
-                light_window_open = true;
+                windowFlags->light_window_open = true;
         }
         //fill the gap between lightIcon and scaleIcon
         ImGui::TableNextColumn();
@@ -797,14 +802,31 @@ void RenderApp::DrawToolWindow()
         ImGui::Image((void*)resources->skybox_icon, item_size);
         if (ImGui::IsItemHovered())
         {
-            if (!isPressed)
+            if (!leftMouse->isPressed)
             {
                 ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
                 ImGui::SetTooltip("Skybox");
             }
             if (ImGui::IsItemClicked())
-                skybox_window_open = true;
+                windowFlags->skybox_window_open = true;
+        }
+        //fill the gap between lightIcon and scaleIcon
+        ImGui::TableNextColumn();
+        ImGui::Dummy(ImVec2(10, 10));
+        //Effect Icon
+        ImGui::TableNextColumn();
+        ImGui::Image((void*)resources->effect_icon, item_size);
+        if (ImGui::IsItemHovered())
+        {
+            if (!leftMouse->isPressed)
+            {
+                ImU32 cell_bg_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.7f, 0.65f));
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
+                ImGui::SetTooltip("Effect");
+            }
+            if (ImGui::IsItemClicked())
+                windowFlags->effect_window_open = true;
         }
 
         ImGui::EndTable();
@@ -816,19 +838,19 @@ void RenderApp::DrawToolWindow()
 inline void RenderApp::DrawCameraToolWindow()
 {
 
-    if (ImGui::Begin("Camera",&camera_window_open))
+    if (ImGui::Begin("Camera",&windowFlags->camera_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
         ImGui::Dummy(fill_size);
         ImGui::SameLine();
         ImGui::Text("Camera Attribute");
-        ImGui::Checkbox("Should Look At Current Item?", &shouldLookAtCurItem);
-        if (!shouldLookAtCurItem)
+        ImGui::Checkbox("Should Look At Current Item?", &windowFlags->shouldLookAtCurItem);
+        if (!windowFlags->shouldLookAtCurItem)
         {
             cur_camera->At = glm::vec3(0, 0, 0);
             ImGui::InputFloat3("Look At", glm::value_ptr(cur_camera->At), "%.1f");
         }
-        else if (cur_item && shouldLookAtCurItem)
+        else if (cur_item && windowFlags->shouldLookAtCurItem)
             cur_camera->At = cur_item->transform.getLocalPostion();
         ImGui::InputFloat("Radius", &cur_camera->Distance, 0.1f, 0.01f, "%.2f");
         ImGui::End();
@@ -838,16 +860,16 @@ inline void RenderApp::DrawCameraToolWindow()
 inline void RenderApp::DrawLightToolWindow()
 {
 
-    if (ImGui::Begin("Light", &light_window_open))
+    if (ImGui::Begin("Light", &windowFlags->light_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
         ImGui::Dummy(fill_size);
         ImGui::SameLine();
         ImGui::Text("Light On/Off");
         ImGui::SameLine();
-        ImGui::ToggleButton("toggle",&isLightOn);
+        ImGui::ToggleButton("toggle",&windowFlags->isLightOn);
         //Light Setting
-        if (isLightOn)
+        if (windowFlags->isLightOn)
         {
             if (ImGui::CollapsingHeader("DirLight Atrribute")) 
             {
@@ -855,17 +877,17 @@ inline void RenderApp::DrawLightToolWindow()
                 ImGui::SameLine();
                 ImGui::Text("Directional Light On");
                 ImGui::SameLine();
-                ImGui::ToggleButton("DirLight Toggle", &isLightCastersOn[0]);
+                ImGui::ToggleButton("DirLight Toggle", &windowFlags->isLightCastersOn[0]);
                 //Attribute Panel
-                if (isLightCastersOn[0])
+                if (windowFlags->isLightCastersOn[0])
                 {
                     ImGui::InputFloat3("DirLight Direction", glm::value_ptr(lightManager->dirLight->direction), "%.1f");
                     ImGui::ColorEdit3("DirLight Ambient",glm::value_ptr(lightManager->dirLight->ambient));
                     ImGui::ColorEdit3("DirLight Diffuse", glm::value_ptr(lightManager->dirLight->diffuse));
                     ImGui::ColorEdit3("DirLight Specular", glm::value_ptr(lightManager->dirLight->specular));
                     //Change the uniform value in default_shader
-                    default_shader->use();
-                    default_shader->setDirLight(*(lightManager->dirLight));
+                    shaderManager->default_shader->use();
+                    shaderManager->default_shader->setDirLight(*(lightManager->dirLight));
                 }
 
             }
@@ -875,9 +897,9 @@ inline void RenderApp::DrawLightToolWindow()
                 ImGui::SameLine();
                 ImGui::Text("Point Light On");
                 ImGui::SameLine();
-                ImGui::ToggleButton("PointLight Toggle", &isLightCastersOn[1]);
+                ImGui::ToggleButton("PointLight Toggle", &windowFlags->isLightCastersOn[1]);
 
-                if (isLightCastersOn[1])
+                if (windowFlags->isLightCastersOn[1])
                 {
                     ImGui::InputFloat("PointLight Constant", &lightManager->pointLight->constant, 0.01f, 0.01f, "%.3f");
                     ImGui::InputFloat("PointLight Quadratic", &lightManager->pointLight->quadratic, 0.01f, 0.01f, "%.3f");
@@ -887,8 +909,8 @@ inline void RenderApp::DrawLightToolWindow()
                     ImGui::ColorEdit3("PointLight Diffuse", glm::value_ptr(lightManager->pointLight->diffuse));
                     ImGui::ColorEdit3("PointLight Specular", glm::value_ptr(lightManager->pointLight->specular));
 
-                    default_shader->use();
-                    default_shader->setPointLight(*(lightManager->pointLight));
+                    shaderManager->default_shader->use();
+                    shaderManager->default_shader->setPointLight(*(lightManager->pointLight));
                 }
             }
             if (ImGui::CollapsingHeader("SpotLight Atrribute"))
@@ -897,9 +919,9 @@ inline void RenderApp::DrawLightToolWindow()
                 ImGui::SameLine();
                 ImGui::Text("Spot Light On");
                 ImGui::SameLine();
-                ImGui::ToggleButton("SpotLight Toggle", &isLightCastersOn[2]);
+                ImGui::ToggleButton("SpotLight Toggle", &windowFlags->isLightCastersOn[2]);
 
-                if (isLightCastersOn[2])
+                if (windowFlags->isLightCastersOn[2])
                 {
                     ImGui::InputFloat("SpotLight Constant", &lightManager->spotLight->constant, 0.01f, 0.01f, "%.3f");
                     ImGui::InputFloat("SpotLight InnerCutOut", &lightManager->spotLight->innerCutOut, 0.01f, 0.01f, "%.3f");
@@ -922,15 +944,15 @@ inline void RenderApp::DrawLightToolWindow()
 
 inline void RenderApp::DrawSkyboxToolWindow()
 {
-    if (ImGui::Begin("Skybox", &skybox_window_open))
+    if (ImGui::Begin("Skybox", &windowFlags->skybox_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
         ImGui::Dummy(fill_size);
         ImGui::SameLine();
         ImGui::Text("Skybox On/Off");
         ImGui::SameLine();
-        ImGui::ToggleButton("Skybox Toggle", &isSkyboxOn);
-        if (isSkyboxOn)
+        ImGui::ToggleButton("Skybox Toggle", &windowFlags->isSkyboxOn);
+        if (windowFlags->isSkyboxOn)
         {
             float w = ImGui::GetWindowWidth() / 4;
             auto flags = ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_NoHostExtendX |
@@ -1015,14 +1037,77 @@ inline void RenderApp::DrawSkyboxToolWindow()
                     }
                     ifd::FileDialog::Instance().Close();
                 }
-
         }
+        ImGui::End();
+    }
+}
+
+inline void RenderApp::DrawEffectToolWindow()
+{
+
+    if (ImGui::Begin("Effect", &windowFlags->effect_window_open))
+    {
+        ImVec2 fill_size = ImVec2(24, 24);
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        ImGui::Text("Effect On/Off");
+        ImGui::SameLine();
+        ImGui::ToggleButton("effect toggle", &windowFlags->isEffectOn);
+        //Effect Setting
+        if (windowFlags->isEffectOn)
+        {
+            ImGui::NewLine();
+            //Screen Effecs
+            ImGui::Text(u8"屏幕后期特效");
+            const char* effect_items[] = { "Inversion","Grayscale","Sharpen","Blur","Edge-Detection"};
+            static const char* current_item = effect_items[0];
+            static int current_index = 0;
+            if (ImGui::BeginCombo("##effect_combo", current_item))
+            {
+
+                for (unsigned int i = 0; i < IM_ARRAYSIZE(effect_items); i++)
+                {
+                    bool is_selected = (current_item == effect_items[i]);
+                    if (ImGui::Selectable(effect_items[i], is_selected))
+                        current_item = effect_items[current_index = i];
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                switch (current_index)
+                {
+                case 0:windowFlags->effectFlags = INVERSION_EFFECT;
+                    shaderManager->cur_effect_shader = shaderManager->inversion_shader; break;
+                case 1:windowFlags->effectFlags = GRAYSCALE_EFFECT;
+                    shaderManager->cur_effect_shader = shaderManager->grayscale_shader; break;
+                case 2:windowFlags->effectFlags = SHARPEN_EFFECT;
+                    shaderManager->cur_effect_shader = shaderManager->sharpen_shader; break;
+                case 3:windowFlags->effectFlags = BLUR_EFFECT;
+                    shaderManager->cur_effect_shader = shaderManager->blur_shader; break;
+                case 4:windowFlags->effectFlags = EDGE_DETECTION_EFFECT;
+                    shaderManager->cur_effect_shader = shaderManager->edge_detection_shader; break;
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        if (cur_item && cur_item->haveDrenderData()) 
+        {
+            size_t size = cur_item->getModel().get_Meshes()[0].textures.size();
+            ImVec2 img_size = ImVec2(48, 48);
+            for (size_t i = 0; i < size; i++)
+            {
+                Texture& texture = cur_item->getModel().get_Meshes()[0].textures[i];
+                ImGui::Image((void*)(&texture), img_size);
+            }
+        }
+
         ImGui::End();
     }
 }
 
 inline void RenderApp::CreateFBO(int width, int height)
 {
+    //SceneTexture
     glGenFramebuffers(1, &m_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     //create a color attachment texture 
@@ -1042,45 +1127,81 @@ inline void RenderApp::CreateFBO(int width, int height)
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //ScreenTexture
+    glGenFramebuffers(1, &screenFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
+    //create a color attachment texture 
+    glGenTextures(1, &screenTexture);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);
+    //create a renderbuffer object for depth and stencil attachment
+    unsigned int screen_rbo;
+    glGenRenderbuffers(1, &screen_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, screen_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, screen_rbo);
+    //now that we actually create the freambuffer and added all attachements we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 inline void RenderApp::draw_callback(GLFWwindow* window)
 {
-    // bind to custom framebuffer and draw scene as we normally would to color texture 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     //向shader传送所有的需要的uniform变量资源
     glm::mat4 projection = cur_camera->getProjectionMatrix();
     glm::mat4 view = cur_camera->getViewMatrix();
 
-    items[0]->getShader()->use();
-    items[0]->getShader()->setMat4("projection", projection);
-    items[0]->getShader()->setMat4("view", view);
-    //shader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    //shader.setVec3("viewPos", myCamera->Position);
-    //shader.setVec3("dirLight.ambient", 0.51f, 0.51f, 0.5f);
-    //shader.setVec3("dirLight.diffuse", 0.99f, 0.99f, 0.99f);
-    //shader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-    //shader.setFloat("material.shininess", 32.0f);
-
+    //bind to picking texture and store index information
+    pickingTexture->EnableWriting();
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT |GL_DEPTH_BUFFER_BIT);
+    for (size_t i = 0; i < items.size(); i++)
+    {
+        if (!items[i]->isDisabled()) {
+            items[i]->setShader(shaderManager->picking_shader);
+            items[i]->getShader()->use();
+            items[i]->getShader()->setMat4("projection", projection);
+            items[i]->getShader()->setMat4("view", view);
+            items[i]->getShader()->setUint("ModelIndex", i);
+            items[i]->EnablePicking();
+            items[i]->Draw();
+            items[i]->DisablePicking();
+        }
+    }
+    pickingTexture->DisableWriting();
+    // bind to custom framebuffer and draw scene as we normally would to color texture 
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    //Draw Object
     for (unsigned int i = 0; i < items.size(); i++) {
         if (!items[i]->isDisabled())
+        {
+            items[i]->setShader(shaderManager->default_shader);
+            items[i]->getShader()->use();
+            items[i]->getShader()->setMat4("projection", projection);
+            items[i]->getShader()->setMat4("view", view);
             items[i]->Draw();
+        }
     }
     //Skybox
-    if (isSkyboxOn)
+    if (windowFlags->isSkyboxOn)
     {
         // change depth function so depth test passes when values are equal to depth buffer's content
-        glDepthFunc(GL_EQUAL);
-        skybox_shader->use();
+        glDepthFunc(GL_LEQUAL);
+        shaderManager->skybox_shader->use();
         //remove translation from view matrix
         view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
-        skybox_shader->setMat4("view", view);
-        skybox_shader->setMat4("projection", projection);
+        shaderManager->skybox_shader->setMat4("view", view);
+        shaderManager->skybox_shader->setMat4("projection", projection);
         //skybox cube
         glBindVertexArray(skyboxVAO);
         glActiveTexture(GL_TEXTURE0);
@@ -1089,11 +1210,46 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         glBindVertexArray(0);
         glDepthFunc(GL_LESS);
     }
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDisable(GL_DEPTH_TEST);
+
+    //Post-Processing
+    if (windowFlags->isEffectOn)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        shaderManager->cur_effect_shader->use();
+
+        glBindVertexArray(screenVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
 }
 
+RenderApp::RenderApp()
+{
+    windowFlags = new WindowFlags();
+    resources = new WindowResources();
+    pickingTexture = new PickingTexture();
+    leftMouse = new LeftMouse();
 
+    if (!RenderApp::Init()) {
+        std::cout << "Init Failure!" << std::endl;
+    }
 
+    lightManager = new LightManager();
+    shaderManager = new ShaderManager();
+
+    cur_camera = new Camera();
+    empty_item = new RenderItem();
+}
+
+RenderApp::~RenderApp()
+{
+}

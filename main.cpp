@@ -44,7 +44,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
     if (!(glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS))
         return;
-    if (app->isPressed)
+    if (app->getLeftMouse()->isPressed)
         app->getCamera()->ProcessMouseMovement(-xoffset, -yoffset);
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -53,7 +53,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        app->isPressed = true;
+    {
+        app->getLeftMouse()->isPressed = true;
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        app->getLeftMouse()->x = xpos;
+        app->getLeftMouse()->y = ypos;
+    }
     else
-        app->isPressed = false;
+        app->getLeftMouse()->isPressed = false;
 }

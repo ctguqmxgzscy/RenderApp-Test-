@@ -207,12 +207,16 @@
     <None Include="Shaders\basic_trans.vert" />
     <None Include="Shaders\blendShader.frag" />
     <None Include="Shaders\blendShader.vert" />
+    <None Include="Shaders\Blur.frag" />
     <None Include="Shaders\container.frag" />
     <None Include="Shaders\container.vert" />
     <None Include="Shaders\DiffuseMap.frag" />
     <None Include="Shaders\DiffuseMap.vert" />
+    <None Include="Shaders\Edge-Detection.frag" />
     <None Include="Shaders\glm.frag" />
     <None Include="Shaders\glm.vert" />
+    <None Include="Shaders\Grayscale.frag" />
+    <None Include="Shaders\Inversion.frag" />
     <None Include="Shaders\Light.frag" />
     <None Include="Shaders\Light.vert" />
     <None Include="Shaders\Light_Casters.frag" />
@@ -223,6 +227,7 @@
     <None Include="Shaders\Model.vert" />
     <None Include="Shaders\Picking.frag" />
     <None Include="Shaders\Picking.vert" />
+    <None Include="Shaders\Sharpen.frag" />
     <None Include="Shaders\SimpleModel.frag" />
     <None Include="Shaders\SimpleModel.vert" />
     <None Include="Shaders\simple_color.frag" />
