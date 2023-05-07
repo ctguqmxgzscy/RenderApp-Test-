@@ -55,7 +55,28 @@ RenderItem::RenderItem(const char* str)
     count++;
     sprintf_s(name, "object_%d", count);
     _name = std::string(name);
-    _shader = new Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
+}
+
+RenderItem::RenderItem(const RenderItem* rhs)
+{
+    this->_name = std::string(rhs->_name.c_str()).append("(copy)");
+    if (rhs->m_Model_ != NULL)
+        this->m_Model_ = new Model(rhs->m_Model_->getPath().c_str());
+    this->_is_shader_loaded = false;
+    this->_is_diabled = false;
+    this->parent = rhs->parent;
+    this->transform = Transform(rhs->transform);
+    count++;
+
+    if (rhs->children.size() == 0)
+        return;
+
+    for (auto&& child : rhs->children)
+    {
+        auto copy = new RenderItem(child.get());
+        this->children.push_back(std::make_unique<RenderItem>(copy));
+        this->children.back()->parent = this;
+    }
 }
 
 RenderItem::RenderItem()
@@ -64,7 +85,6 @@ RenderItem::RenderItem()
     count++;
     sprintf_s(name, "object_%d", count);
     _name = std::string(name);
-    _shader = new Shader("Shaders/simple_color.vert", "Shaders/simple_color.frag");
 }
 
 RenderItem::~RenderItem()
@@ -79,6 +99,7 @@ void RenderItem::Draw() {
         if (_is_shader_loaded) {
             _shader->use();
             _shader->setMat4("model", this->transform.getModelMat());
+
             this->m_Model_->Draw(*_shader);
         }
         else {

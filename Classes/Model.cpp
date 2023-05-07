@@ -6,6 +6,13 @@ Model::Model(const char* path)
 	loadModel(path);
 }
 
+Model::Model(Mesh mesh)
+{
+	this->meshes.push_back(mesh); 
+	this->directory = "No Directory";
+	this->path = "No Path!";
+}
+
 Model::~Model()
 {
 	this->directory.clear();
@@ -64,11 +71,12 @@ void Model::loadModel(std::string const &path)
 {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate |
-		aiProcess_FlipUVs);
+		aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cout << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
 		return;
 	}
+	this->path = path;
 	directory = path.substr(0, path.find_last_of('/'));
 	//absolute path
 	if (directory == path)
@@ -114,6 +122,17 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		}
 		else
 			vertex.TexCoord = glm::vec2(0.f, 0.f);
+		if (mesh->mTangents)
+		{
+			vertex.Tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y,
+				mesh->mTangents[i].z);
+
+		}
+		if (mesh->mBitangents)
+		{
+			vertex.Bitangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y,
+				mesh->mBitangents[i].z);
+		}
 		vertices.push_back(vertex);
 	}
 
@@ -142,6 +161,36 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 	}
 	return Mesh(vertices,indices,textures);
+}
+
+size_t Model::getVertexSum()
+{
+	size_t sum = 0;
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		sum += meshes[i].vertices.size();
+	}
+	return sum;
+}
+
+size_t Model::getTextureSum()
+{
+	size_t sum = 0;
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		sum += meshes[i].textures.size();
+	}
+	return sum;
+}
+
+size_t Model::getIndexSum()
+{
+	size_t sum = 0;
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		sum += meshes[i].indices.size();
+	}
+	return sum;
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)

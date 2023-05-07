@@ -99,6 +99,9 @@
     <ClCompile Include="imgui\ImFileDialog.cpp">
       <Filter>头文件\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="imgui\TextEditor.cpp">
+      <Filter>头文件\imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Classes\Shader.h">
@@ -168,6 +171,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="imgui\ImFileDialog.h">
+      <Filter>头文件\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\TextEditor.h">
       <Filter>头文件\imgui</Filter>
     </ClInclude>
   </ItemGroup>
@@ -277,6 +283,12 @@
     </None>
     <None Include="Shaders\Grayscale.frag">
       <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
+    </None>
+    <None Include="Shaders\standard.vert">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\standard.frag">
+      <Filter>资源文件\Shaders\Model_testShaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

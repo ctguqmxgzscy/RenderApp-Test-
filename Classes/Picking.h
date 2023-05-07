@@ -13,13 +13,13 @@ class Transform {
 
 protected:
 	//Local Space
-	glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
-	glm::vec3 rotation = glm::vec3(0.f, 0.f, 0.f);
-	glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 position;
+	glm::vec3 rotation;
+	glm::vec3 scale ;
 	//Global Space
-	glm::mat4 model_mat = glm::mat4(1.0f);
+	glm::mat4 model_mat;
 	//Dirty Flag
-	bool m_isDirty = true;
+	bool m_isDirty;
 
 protected:
 	glm::mat4 getLocalSpaceMat()
@@ -32,6 +32,25 @@ protected:
 		return glm::translate(glm::mat4(1.0f), position) *
 			rotation_mat *
 			glm::scale(glm::mat4(1.0f), scale);
+	}
+
+public:
+	Transform()
+	{
+		this->position = glm::vec3(0.f, 0.f, 0.f);
+		this->rotation = glm::vec3(0.f, 0.f, 0.f);
+		this->scale = glm::vec3(1.0f, 1.0f, 1.0f);
+		this->model_mat = glm::mat4(1.0f);
+		this->m_isDirty = true;
+	}
+
+	Transform(const Transform& rhs)
+	{ 
+		this->position = glm::vec3(rhs.position);
+		this->rotation = glm::vec3(rhs.rotation);
+		this->scale = glm::vec3(rhs.scale);
+		this->model_mat = glm::mat4(rhs.model_mat);
+		this->m_isDirty = rhs.m_isDirty;
 	}
 
 public:
@@ -103,6 +122,7 @@ public:
     static int count;
 public:
     RenderItem(const char* str);
+	RenderItem(const RenderItem* rhs);
     RenderItem();
 	~RenderItem();
 public:
@@ -113,7 +133,7 @@ public:
     void Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex);
     void Draw_Triangle_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, 
         unsigned int drawIndex,unsigned int primitiveIndex);
-	bool haveDrenderData() { if (this->m_Model_) return true; return false; }
+	bool hasRenderData() { if (this->m_Model_) return true; return false; }
 public:
 	//Scene Graph
 	std::list<std::unique_ptr<RenderItem>> children;
@@ -159,7 +179,8 @@ public:
 
 public:
 	Model& getModel() { return *m_Model_; }
-	void setModel(Model* mesh) { this->m_Model_ = mesh; }
+	void setModel(Model* model) { this->m_Model_ = model; }
+	void setModel(Mesh* mesh) { if (this->m_Model_==NULL) this->m_Model_ = new Model(*mesh); }
     std::string getName() { return _name; }
     void setName(std::string name) {this->_name = name;}
     bool isDisabled() { return this->_is_diabled; }

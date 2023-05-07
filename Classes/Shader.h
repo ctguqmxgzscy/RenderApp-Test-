@@ -104,8 +104,13 @@ public:
 class Shader {
 public:
 	unsigned int ID;
-	Shader(const GLchar* vertexPath, const GLchar* fragment);
+	std::string vertexCode, fragmentCode;
+	std::string vertexName, fragmentName;
+	Shader(const char* vertexPath, const char* fragment);
 	Shader(){}
+	void Init();
+	void ReCompile();
+public:
 	void use();
 	void setBool(const std::string& name, bool value) const;
 	void setInt(const std::string& name, int value)const;
@@ -139,12 +144,14 @@ struct ShaderManager
 	Shader* sharpen_shader;
 	Shader* blur_shader;
 	Shader* edge_detection_shader;
+	//Test Shader
+	Shader custom_shader;
 	ShaderManager()
 	{
 		//Skybox shader
 		skybox_shader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
 		//Default shader
-		default_shader = new Shader("Shaders/model.vert", "Shaders/model.frag");
+		default_shader = new Shader("Shaders/standard.vert", "Shaders/standard.frag");
 		//picking shader
 		picking_shader = new Shader("Shaders/Picking.vert", "Shaders/Picking.frag");
 		//effects shader
@@ -159,5 +166,7 @@ struct ShaderManager
 		//5th Edge-Detection Effect
 		edge_detection_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Edge-Detection.frag");
 		cur_effect_shader = inversion_shader;
+
+		custom_shader = {};
 	}
 };

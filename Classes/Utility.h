@@ -5,7 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
 
-//box data
+//skybox data
 float skyboxVertices[] = {
 	// positions          
 	-1.0f,  1.0f, -1.0f,
@@ -74,6 +74,13 @@ struct LeftMouse {
 	~LeftMouse(){}
 };
 
+
+enum ShaderFlags
+{
+	VERTEX,
+	FRAGMENT
+};
+
 enum EffectFlags
 {
 	INVERSION_EFFECT,
@@ -100,7 +107,9 @@ struct WindowFlags
 	bool effect_window_open = false;
 	bool isEffectOn = false;
 	EffectFlags effectFlags;
-
+	//Shader Editor Flags
+	bool shader_window_open = false;
+	ShaderFlags shader_flag;
 };
 
 struct WindowResources
@@ -112,6 +121,7 @@ struct WindowResources
 	unsigned int light_icon;
 	unsigned int skybox_icon;
 	unsigned int effect_icon;
+	unsigned int shader_icon;
 
 	std::vector<std::string> skybox_faces
 	{
@@ -344,3 +354,5 @@ inline void rotationY(const float angle, float* m16)
 	m16[15] = 1.0f;
 }
  
+#define MESH_MAX_SIZE 16
+const char* number[] = { "0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15" };

@@ -5,7 +5,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	this->vertices = vertices;
 	this->indices = indices;
 	this->textures = textures;
-
+	this->material = Material();
 	setupMesh();
 }
 
@@ -20,6 +20,26 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 //	indices.clear();
 //}
 
+void Mesh::GetDataFrom(GeometryGenerator::MeshData data)
+{
+	for (size_t i = 0; i < data.Vertices.size(); i++)
+	{
+		Vertex vert;
+		vert.Position = data.Vertices[i].Position;
+		vert.Normal = data.Vertices[i].Normal;
+		vert.Tangent = data.Vertices[i].TangentU;
+		vert.TexCoord = data.Vertices[i].TexC;
+		vertices.push_back(vert);
+	}
+
+	for (size_t i = 0; i < data.Indices32.size(); i++)
+	{
+		indices.push_back(data.Indices32[i]);
+	}
+
+	setupMesh();
+}
+
 void Mesh::Draw(Shader shader)
 {
 	unsigned int diffuseNr = 1;
@@ -31,11 +51,20 @@ void Mesh::Draw(Shader shader)
 		std::string number;
 		std::string name = textures[i].type;
 		if (name == "texture_diffuse")
+		{
+			material.diffuseMapping = true;
 			number = std::to_string(diffuseNr++);
+		}
 		else if (name == "texture_specular")
+		{
+			material.specularMapping = true;
 			number = std::to_string(specularNr++);
+		}
 		else if (name == "texture_normal")
-			number = std::to_string(normalNr++); 
+		{
+			material.normalMapping = true;
+			number = std::to_string(normalNr++);
+		}
 		else if (name == "texture_height")
 			number = std::to_string(heightNr++);
 
@@ -44,6 +73,8 @@ void Mesh::Draw(Shader shader)
 	}
 	glActiveTexture(GL_TEXTURE0);
 	shader.use();
+	material.setShader(shader);
+
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -143,7 +174,6 @@ void Mesh::setupMesh()
 	// ids
 	glEnableVertexAttribArray(5);
 	glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, m_BoneIDs));
-
 	// weights
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, m_Weights));

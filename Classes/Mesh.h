@@ -4,6 +4,7 @@
 #include<vector>
 
 #include"Shader.h"
+#include"GeometryGenerator.h"
 #include"../glm/glm.hpp"
 #include"../glm/gtc/matrix_transform.hpp"
 #include"../glm/gtc/type_ptr.hpp"
@@ -44,15 +45,18 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures; 
+	Material material;
 public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 		std::vector<Texture> textures);
+	Mesh() { this->material = Material(); };
 	//~Mesh();
 	 unsigned int& get_VAO() { return this->VAO; }
 	 unsigned int& get_VBO() { return this->VBO; }
 	 unsigned int& get_EBO() { return this->EBO; }
 
+	 void GetDataFrom(GeometryGenerator::MeshData data);
 	void Draw(Shader shader);
 	void Draw_PickingEffects(Shader shader,unsigned int i);
 	void Draw_Mesh_SimpleColor(Shader shader);

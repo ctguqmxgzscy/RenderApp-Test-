@@ -7,13 +7,18 @@
 class Material
 {
 public:
-
+	Material() {};
+	Material(const Material& rhs);
 	std::string Name;
-	glm::vec4 Diffuse = { 1.0f,1.0f,1.0f,1.0f };
-	glm::vec4 Ambient = { 0.01f,0.01f,0.01f,1.0f };
-	glm::vec4 Specular = { 1.0f,1.0f,1.0,1.0f };
-	float Shininess = 0.25f;
-	glm::mat4 MatTransform = glm::mat4(1.0f);
+
+	bool diffuseMapping = false;
+	bool normalMapping = false;
+	bool specularMapping = false;
+
+	glm::vec3 Diffuse = { 1.0f,1.0f,1.0f };
+	glm::vec3 Ambient = { 0.01f,0.01f,0.01f };
+	glm::vec3 Specular = { 1.0f,1.0f,1.0 };
+	float Shininess = 32.f;
 public:
 	void setShader(Shader shader);
 };
