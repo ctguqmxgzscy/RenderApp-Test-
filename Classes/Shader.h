@@ -108,8 +108,14 @@ public:
 	std::string vertexName, fragmentName;
 	Shader(const char* vertexPath, const char* fragment);
 	Shader(){}
+	Shader(const Shader& rhs);
+	Shader(Shader&& rhs) noexcept;
+	~Shader();
+public:
 	void Init();
 	void ReCompile();
+	Shader operator=(const Shader& rhs) noexcept;
+	Shader operator=(Shader&& rhs) noexcept;
 public:
 	void use();
 	void setBool(const std::string& name, bool value) const;
@@ -129,43 +135,44 @@ public:
 	void setDirLight(const DirectionalLight& light) const;
 	void setPointLight(const PointLight& light)const;
 	void setSpotLight(const SpotLight& light)const;
+	void setMVP(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection)const;
 };
 
 
 struct ShaderManager
 {
-	Shader* picking_shader;
-	Shader* default_shader;
-	Shader* skybox_shader;
+	Shader picking_shader;
+	Shader default_shader;
+	Shader skybox_shader;
 	//Effect Shader
 	Shader* cur_effect_shader;
-	Shader* inversion_shader;
-	Shader* grayscale_shader;
-	Shader* sharpen_shader;
-	Shader* blur_shader;
-	Shader* edge_detection_shader;
+	Shader inversion_shader;
+	Shader grayscale_shader;
+	Shader sharpen_shader;
+	Shader blur_shader;
+	Shader edge_detection_shader;
 	//Test Shader
 	Shader custom_shader;
 	ShaderManager()
 	{
 		//Skybox shader
-		skybox_shader = new Shader("Shaders/skybox.vert", "Shaders/skybox.frag");
+		skybox_shader = std::move(Shader("Shaders/skybox.vert", "Shaders/skybox.frag"));
 		//Default shader
-		default_shader = new Shader("Shaders/standard.vert", "Shaders/standard.frag");
+		default_shader = std::move(Shader("Shaders/standard.vert", "Shaders/standard.frag"));
 		//picking shader
-		picking_shader = new Shader("Shaders/Picking.vert", "Shaders/Picking.frag");
+		picking_shader = std::move(Shader("Shaders/Picking.vert", "Shaders/Picking.frag"));
 		//effects shader
 		//1st Inversion Effect
-		inversion_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Inversion.frag");
+		inversion_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Inversion.frag"));
 		//2nd Grayscale Effect
-		grayscale_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Grayscale.frag");
+		grayscale_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Grayscale.frag"));
 		//3rd Sharpen Effect
-		sharpen_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Sharpen.frag");
+		sharpen_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Sharpen.frag"));
 		//4th Blur Effect
-		blur_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Blur.frag");
+		blur_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Blur.frag"));
 		//5th Edge-Detection Effect
-		edge_detection_shader = new Shader("Shaders/PostProcessing.vert", "Shaders/Edge-Detection.frag");
-		cur_effect_shader = inversion_shader;
+		edge_detection_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Edge-Detection.frag"));
+		cur_effect_shader = &inversion_shader;
 
 		custom_shader = {};
 	}

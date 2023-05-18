@@ -1,36 +1,41 @@
 
 #include"Shader.h"
 
+Shader::~Shader()
+{
+	glDeleteShader(ID);
+	vertexCode.clear();
+	fragmentCode.clear();
+	vertexName.clear();
+	fragmentName.clear();
+}
+
 void Shader::Init()
 {
 	int success;
 	char infoLog[512];
 	GLuint vertexID, fragmentID;
-
+	// Compile Vertex Shader
 	vertexID = glCreateShader(GL_VERTEX_SHADER);
 	const char* vertex_shader_src_cstr = vertexCode.c_str();
 	glShaderSource(vertexID, 1, &vertex_shader_src_cstr, NULL);
 	glCompileShader(vertexID);
-
 	glGetShaderiv(vertexID, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		glGetShaderInfoLog(vertexID, 512, NULL, infoLog);
 		std::cout << "ERROR Compile Vertex Shader: ID [" << vertexID << "]   error: " << infoLog << std::endl;
 		exit(1);
 	}
-
 	// Compile Fragment Shader
 	fragmentID = glCreateShader(GL_FRAGMENT_SHADER);
 	const char* fragment_shader_src_cstr = fragmentCode.c_str();
 	glShaderSource(fragmentID, 1, &fragment_shader_src_cstr, NULL);
 	glCompileShader(fragmentID);
-
 	glGetShaderiv(fragmentID, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		glGetShaderInfoLog(fragmentID, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
 	}
-
 	// Link shaders
 	ID = glCreateProgram();
 	glAttachShader(ID, vertexID);
@@ -42,7 +47,6 @@ void Shader::Init()
 		glGetProgramInfoLog(ID, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 	}
-
 	glDeleteShader(vertexID);
 	glDeleteShader(fragmentID);
 
@@ -90,9 +94,32 @@ void Shader::ReCompile()
 		glGetProgramInfoLog(ID, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 	}
-
+	glDetachShader(ID, GL_VERTEX_SHADER);
 	glDeleteShader(vertexID);
+	glDetachShader(ID, GL_FRAGMENT_SHADER);
 	glDeleteShader(fragmentID);
+}
+
+Shader Shader::operator=(const Shader& rhs) noexcept
+{
+	ID = rhs.ID;
+	fragmentCode= std::string(rhs.fragmentCode.c_str());
+	fragmentName = std::string(rhs.fragmentName.c_str());
+	vertexCode = std::string(rhs.vertexCode.c_str());
+	vertexName = std::string(rhs.vertexName.c_str());
+	ReCompile();
+	return *this;
+}
+
+Shader Shader::operator=(Shader&& rhs) noexcept
+{
+	ID = rhs.ID;
+	fragmentCode = rhs.fragmentCode;
+	fragmentName = rhs.fragmentName;
+	vertexCode = rhs.vertexCode;
+	vertexName = rhs.vertexName;
+	ReCompile();
+	return *this;
 }
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
@@ -128,6 +155,30 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 		std::cout << "FAILED::SHADER::FILE_NOT_SUCCESSFULLY_READ!" << std::endl;
 	}
 	Init();
+}
+
+Shader::Shader(const Shader& rhs)
+{
+	glDeleteShader(this->ID);
+	this->ID = rhs.ID;
+	this->fragmentCode = std::string(rhs.fragmentCode.c_str());
+	this->fragmentName = std::string(rhs.fragmentName.c_str());
+	this->vertexCode = std::string(rhs.vertexCode.c_str());
+	this->vertexName = std::string(rhs.vertexName.c_str());
+	this->ReCompile();
+	std::cout << "Shader Copy Constructor" << std::endl;
+}
+
+Shader::Shader(Shader&& rhs) noexcept
+{
+	glDeleteShader(this->ID);
+	this->ID = rhs.ID;
+	this->fragmentCode = rhs.fragmentCode;
+	this->fragmentName = rhs.fragmentName;
+	this->vertexCode = rhs.vertexCode;
+	this->vertexName = rhs.vertexName;
+	this->ReCompile();
+	std::cout << "Shader Move Constructor" << std::endl;
 }
 
 
@@ -233,4 +284,11 @@ void Shader::setSpotLight(const SpotLight& light) const
 	this->setFloat("spotLight.outterCutOut", light.outterCutOut);
 	this->setFloat("spotLight.quadratic", light.quadratic);
 	this->setFloat("spotLight.linear", light.linear);
+}
+
+void Shader::setMVP(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection) const
+{
+	this->setMat4("model", model);
+	this->setMat4("view", view);
+	this->setMat4("projection", projection);
 }

@@ -8,12 +8,12 @@ public:
 	Model(Mesh mesh);
 	~Model();
 	//绘制所有网格函数
-	void Draw(Shader shader);
-	void Draw_DefaultEffects(Shader shader);
+	void Draw();
+	void Draw_DefaultEffects();
 	//绘制除excluded_index之外的所有网格
-	void Draw(Shader shader,unsigned int excluded_index);
+	void Draw(unsigned int excluded_index);
 public:
-	std::vector<Mesh>& get_Meshes() { return this->meshes; }
+	std::vector<Mesh>& getMeshes() { return this->meshes; }
 	std::string getDirectory() { return this->directory; }
 	std::string	getPath() { return this->path; }
 	size_t getVertexSum();

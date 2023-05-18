@@ -57,10 +57,9 @@ public:
 	 unsigned int& get_EBO() { return this->EBO; }
 
 	 void GetDataFrom(GeometryGenerator::MeshData data);
-	void Draw(Shader shader);
-	void Draw_PickingEffects(Shader shader,unsigned int i);
-	void Draw_Mesh_SimpleColor(Shader shader);
-	void Draw_Triangle_SimpleColor( Shader _exclude_shader ,Shader _simple_color_shader ,unsigned int primitiveIndex);
+	void Draw();
+	void Draw_PickingEffects(unsigned int i);
+	void Draw_Mesh_SimpleColor();
 private:
 	bool isPicking;
 	unsigned int VAO, VBO, EBO;

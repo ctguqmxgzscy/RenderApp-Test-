@@ -84,13 +84,13 @@ public:
     void DrawObjectWindow();
     void DrawMainMenuWindow();
     void DrawToolWindow();
-    void ShowEditorWindow();
 private:
     void CreateFBO(int width, int height);
     void DrawCameraToolWindow();
     void DrawLightToolWindow();
     void DrawSkyboxToolWindow();
     void DrawEffectToolWindow();
+    void ShowEditorWindow();
     //OpenGL DrawCallback
     void draw_callback(GLFWwindow* window);
 public:
@@ -133,6 +133,7 @@ int RenderApp::Init()
     resources->skybox_icon = LoadTexture("Resources/Icon/skybox_icon.png");  
     resources->effect_icon = LoadTexture("Resources/Icon/effect_icon.png");
     resources->shader_icon = LoadTexture("Resources/Icon/shader_icon.png");
+    resources->object_icon = LoadTexture("Resources/Icon/object.png");
     //Load texture for each face
     for (size_t i = 0; i < 6; i++)
         resources->skybox_textures[i] = LoadTexture(resources->skybox_faces[i].c_str());
@@ -143,17 +144,18 @@ int RenderApp::Init()
 }
 
 int RenderApp::Run() {
+
+#pragma region Init Some Varaibles
     //RenderItems
     items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
     items.push_back(new RenderItem());
     Mesh mesh;
     auto generator = new GeometryGenerator();
-    mesh.GetDataFrom(generator->CreateSphere(1,16,16));
+    mesh.GetDataFrom(generator->CreateSphere(1, 16, 16));
     items[1]->setModel(&mesh);
-    items.push_back(new RenderItem());  
     //skybox shader,VAO,VBO
-    shaderManager->skybox_shader->use();
-    shaderManager->skybox_shader->setInt("skybox", 0);
+    shaderManager->skybox_shader.use();
+    shaderManager->skybox_shader.setInt("skybox", 0);
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
     glBindVertexArray(skyboxVAO);
@@ -162,7 +164,7 @@ int RenderApp::Run() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     //ScreenTexture VAO,VBO
-    shaderManager->inversion_shader->setUint("ScreenTexture", 0);
+    shaderManager->inversion_shader.setUint("ScreenTexture", 0);
     glGenVertexArrays(1, &screenVAO);
     glGenBuffers(1, &screenVBO);
     glBindVertexArray(screenVAO);
@@ -173,19 +175,17 @@ int RenderApp::Run() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     //Default shader    
-    shaderManager->default_shader->use();
-    shaderManager->default_shader->setFloat("material.shininess", 32.f);
-    shaderManager->default_shader->setDirLight(*(lightManager->dirLight));
-    shaderManager->default_shader->setPointLight(*(lightManager->pointLight));
+    shaderManager->default_shader.use();
+    shaderManager->default_shader.setFloat("material.shininess", 32.f);
+    shaderManager->default_shader.setDirLight(*(lightManager->dirLight));
+    shaderManager->default_shader.setPointLight(*(lightManager->pointLight));
     //skybox texture
     skyboxTextureID = loadCubemap(resources->skybox_faces);
     //ShaderTextEditor
     auto lang = TextEditor::LanguageDefinition::GLSL();
     editor.SetLanguageDefinition(lang);
     editor.SetPalette(TextEditor::GetDarkPalette());
-
     ImGuiIO& io = ImGui::GetIO();
-
     // ImFileDialog requires you to set the CreateTexture and DeleteTexture
     ifd::FileDialog::Instance().CreateTexture = [](uint8_t* data, int w, int h, char fmt) -> void* {
         GLuint tex;
@@ -209,7 +209,8 @@ int RenderApp::Run() {
     //config global context
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
+#pragma endregion
+   
     //MainLoop
     while (!glfwWindowShouldClose(window))
     {
@@ -274,10 +275,10 @@ void RenderApp::DrawUI(ImGuiIO& io)
         DrawEffectToolWindow();
     }
 
-    if (windowFlags->shader_window_open) 
-    {
-        ShowEditorWindow();
-    }
+    //if (windowFlags->shader_window_open) 
+    //{
+    //    ShowEditorWindow();
+    //}
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -290,84 +291,84 @@ void RenderApp::DrawUI(ImGuiIO& io)
     }
 }
 
-void RenderApp::ShowEditorWindow()
-{
-    ImGui::Begin("TextEditor", &windowFlags->shader_window_open, ImGuiWindowFlags_MenuBar);
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Save", "Ctrl-S")) {
-                if (windowFlags->shader_flag == VERTEX)
-                {
-                    auto textToSave = editor.GetText();
-                    if (cur_item)
-                    {
-                        cur_item->getShader()->vertexCode = { textToSave };
-                        cur_item->getShader()->ReCompile();
-                        cur_item->getShader()->use();
-                        cur_item->getShader()->setFloat("material.shininess", 32.f);
-                        cur_item->getShader()->setDirLight(*(lightManager->dirLight));
-                        cur_item->getShader()->setPointLight(*(lightManager->pointLight));
-                    }
-
-                }
-                else if (windowFlags->shader_flag == FRAGMENT)
-                {
-                    auto textToSave = editor.GetText();
-                    if (cur_item)
-                    {
-                        cur_item->getShader()->fragmentCode = { textToSave };
-                        cur_item->getShader()->ReCompile();
-                        cur_item->getShader()->use();
-                        cur_item->getShader()->setFloat("material.shininess", 32.f);
-                        cur_item->getShader()->setDirLight(*(lightManager->dirLight));
-                        cur_item->getShader()->setPointLight(*(lightManager->pointLight));
-                    }
-                }
-            }
-            if (ImGui::MenuItem("Quit", "Alt-F4"))
-                ;
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Undo", "Ctrl-Z", nullptr, editor.CanUndo()))
-                editor.Undo();
-            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, editor.CanRedo()))
-                editor.Redo();
-
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, editor.HasSelection()))
-                editor.Copy();
-            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, editor.HasSelection()))
-                editor.Cut();
-            if (ImGui::MenuItem("Delete", "Del", nullptr, editor.HasSelection()))
-                editor.Delete();
-            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, ImGui::GetClipboardText() != nullptr))
-                editor.Paste();
-
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Select all", nullptr, nullptr))
-                editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(editor.GetTotalLines(), 0));
-
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("View")) {
-            if (ImGui::MenuItem("Dark palette"))
-                editor.SetPalette(TextEditor::GetDarkPalette());
-            if (ImGui::MenuItem("Light palette"))
-                editor.SetPalette(TextEditor::GetLightPalette());
-            if (ImGui::MenuItem("Retro blue palette"))
-                editor.SetPalette(TextEditor::GetRetroBluePalette());
-            ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
-    }
-
-    editor.Render("TextEditor");
-    ImGui::End();
-}
+//void RenderApp::ShowEditorWindow()
+//{
+//    ImGui::Begin("TextEditor", &windowFlags->shader_window_open, ImGuiWindowFlags_MenuBar);
+//    if (ImGui::BeginMenuBar()) {
+//        if (ImGui::BeginMenu("File")) {
+//            if (ImGui::MenuItem("Save", "Ctrl-S")) {
+//                if (windowFlags->shader_flag == VERTEX)
+//                {
+//                    auto textToSave = editor.GetText();
+//                    if (cur_item)
+//                    {
+//                        cur_item->getShader().vertexCode = { textToSave };
+//                        cur_item->getShader().ReCompile();
+//                        cur_item->getShader().use();
+//                        cur_item->getShader().setFloat("material.shininess", 32.f);
+//                        cur_item->getShader().setDirLight(*(lightManager->dirLight));
+//                        cur_item->getShader().setPointLight(*(lightManager->pointLight));
+//                    }
+//
+//                }
+//                else if (windowFlags->shader_flag == FRAGMENT)
+//                {
+//                    auto textToSave = editor.GetText();
+//                    if (cur_item)
+//                    {
+//                        cur_item->getShader().fragmentCode = { textToSave };
+//                        cur_item->getShader().ReCompile();
+//                        cur_item->getShader().use();
+//                        cur_item->getShader().setFloat("material.shininess", 32.f);
+//                        cur_item->getShader().setDirLight(*(lightManager->dirLight));
+//                        cur_item->getShader().setPointLight(*(lightManager->pointLight));
+//                    }
+//                }
+//            }
+//            if (ImGui::MenuItem("Quit", "Alt-F4"))
+//                ;
+//            ImGui::EndMenu();
+//        }
+//        if (ImGui::BeginMenu("Edit")) {
+//            if (ImGui::MenuItem("Undo", "Ctrl-Z", nullptr, editor.CanUndo()))
+//                editor.Undo();
+//            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, editor.CanRedo()))
+//                editor.Redo();
+//
+//            ImGui::Separator();
+//
+//            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, editor.HasSelection()))
+//                editor.Copy();
+//            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, editor.HasSelection()))
+//                editor.Cut();
+//            if (ImGui::MenuItem("Delete", "Del", nullptr, editor.HasSelection()))
+//                editor.Delete();
+//            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, ImGui::GetClipboardText() != nullptr))
+//                editor.Paste();
+//
+//            ImGui::Separator();
+//
+//            if (ImGui::MenuItem("Select all", nullptr, nullptr))
+//                editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(editor.GetTotalLines(), 0));
+//
+//            ImGui::EndMenu();
+//        }
+//
+//        if (ImGui::BeginMenu("View")) {
+//            if (ImGui::MenuItem("Dark palette"))
+//                editor.SetPalette(TextEditor::GetDarkPalette());
+//            if (ImGui::MenuItem("Light palette"))
+//                editor.SetPalette(TextEditor::GetLightPalette());
+//            if (ImGui::MenuItem("Retro blue palette"))
+//                editor.SetPalette(TextEditor::GetRetroBluePalette());
+//            ImGui::EndMenu();
+//        }
+//        ImGui::EndMenuBar();
+//    }
+//
+//    editor.Render("TextEditor");
+//    ImGui::End();
+//}
 
 void RenderApp::ProcessInput(GLFWwindow* window)
 {
@@ -469,23 +470,25 @@ void RenderApp::SetViewport() {
     viewManipulateTop = ImGui::GetWindowPos().y;
     ImGuiWindow* viewport_window = ImGui::GetCurrentWindow();
     gizmoWindowFlags = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(viewport_window->InnerRect.Min, viewport_window->InnerRect.Max) ? ImGuiWindowFlags_NoMove : 0;
-
-#pragma endregion
     auto camera_view = (float*)glm::value_ptr(cur_camera->getViewMatrix());
     auto camera_projection = (float*)glm::value_ptr(cur_camera->getProjectionMatrix());
 
-    float p_min_x = viewport_window->InnerRect.Max.x; 
+    float p_min_x = viewport_window->InnerRect.Max.x;
     float p_min_y = viewport_window->InnerRect.Max.y;
     float p_max_x = viewport_window->InnerRect.Min.x;
     float p_max_y = viewport_window->InnerRect.Min.y;
+#pragma endregion
+
     //ImGuizmo::DrawGrid(camera_view, camera_projection, glm::value_ptr(glm::mat4(1.0f)), 100.f);
     if (windowFlags->isEffectOn)
     {
         ImGui::GetWindowDrawList()->AddImage((void*)screenTexture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
     }
     else
-        ImGui::GetWindowDrawList()->AddImage((void*)m_texture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
-    //ImGui::GetWindowDrawList()->AddImage((void*)pickingTexture->getPickingTexture(), ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
+        ImGui::GetWindowDrawList()->AddImage((void*)m_texture, 
+            ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
+    //ImGui::GetWindowDrawList()->AddImage(
+    //   (void*)pickingTexture->getPickingTexture(), ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
 
     if (cur_item) 
     {
@@ -493,7 +496,8 @@ void RenderApp::SetViewport() {
         ImGuizmo::Manipulate(camera_view, camera_projection, mCurrentGizmoOperation, mCurrentGizmoMode, 
             (float*)glm::value_ptr(cur_item->transform.getModelMat()), NULL, NULL, NULL, NULL);
         //Draw Manipulate View(3D Cube)
-        ImGuizmo::ViewManipulate(camera_view, camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
+        ImGuizmo::ViewManipulate(camera_view, camDistance, 
+            ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
     }  
     ImGui::End();
     style.WindowPadding = ImVec2(6, 6);
@@ -522,77 +526,36 @@ void RenderApp::DrawObjectWindow() {
     {
         ImGui::Begin("Detail");
         //More Detail
-        if (ImGui::CollapsingHeader("Transform"))
+        if (cur_item)
         {
-            if (cur_item)
+            Transform& trans = cur_item->transform;
+            float pos[3], eular[3], scale[3];
+            ImGuizmo::DecomposeMatrixToComponents((float*)glm::value_ptr(trans.getModelMat()),
+                pos, eular, scale);
+
+            ImGui::Text("Position");
             {
-                Transform& trans = cur_item->transform;
-                float pos[3], eular[3], scale[3];
-                ImGuizmo::DecomposeMatrixToComponents((float*)glm::value_ptr(trans.getModelMat()),
-                    pos, eular, scale);
-
-                ImGui::Text("Position");
-                {
-                    ImGui::PushItemWidth(130.0f);
-                    ImGui::InputFloat("P.x", &pos[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("P.y", &pos[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("P.z", &pos[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                }
-
-                ImGui::NewLine();
-                ImGui::Text("Rotation");
-                {
-                    ImGui::InputFloat("R.x", &eular[0], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("R.y", &eular[1], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("R.z", &eular[2], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
-                }
-
-                ImGui::NewLine();
-                ImGui::Text("Scale");
-                {
-                    ImGui::InputFloat("S.x", &scale[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("S.y", &scale[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
-                    ImGui::InputFloat("S.z", &scale[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
-                    ImGui::PopItemWidth();
-                }
-                trans.setNewPosition(glm::vec3(pos[0], pos[1], pos[2]));
-                trans.setNewRotation(glm::vec3(eular[0], eular[1], eular[2]));
-                trans.setNewScale(glm::vec3(scale[0], scale[1], scale[2]));
-                cur_item->updateSelfAndChild();
-
-                ImGui::NewLine(); ImGui::NewLine();
-                ImGui::Checkbox("Disabled", cur_item->getDisabled());
-            }
-            else
-            {
-                float pos[3], eular[3], scale[3];
-                ImGuizmo::DecomposeMatrixToComponents((float*)glm::value_ptr(empty_item->transform.getModelMat()),
-                    pos, eular, scale);
-
-                ImGui::Text("Position");
                 ImGui::PushItemWidth(130.0f);
                 ImGui::InputFloat("P.x", &pos[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("P.y", &pos[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("P.z", &pos[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            }
 
-                ImGui::NewLine();
-                ImGui::Text("Rotation");
+            ImGui::NewLine();
+            ImGui::Text("Rotation");
+            {
                 ImGui::InputFloat("R.x", &eular[0], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("R.y", &eular[1], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("R.z", &eular[2], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
+            }
 
-                ImGui::NewLine();
-                ImGui::Text("Scale");
+            ImGui::NewLine();
+            ImGui::Text("Scale");
+            {
                 ImGui::InputFloat("S.x", &scale[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
                 ImGui::InputFloat("S.y", &scale[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
@@ -600,10 +563,48 @@ void RenderApp::DrawObjectWindow() {
                 ImGui::InputFloat("S.z", &scale[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
                 ImGui::PopItemWidth();
             }
+            trans.setNewPosition(glm::vec3(pos[0], pos[1], pos[2]));
+            trans.setNewRotation(glm::vec3(eular[0], eular[1], eular[2]));
+            trans.setNewScale(glm::vec3(scale[0], scale[1], scale[2]));
+            cur_item->updateSelfAndChild();
+
+            ImGui::NewLine(); ImGui::NewLine();
+            ImGui::Checkbox("Disabled", cur_item->getDisabled());
         }
+        else
+        {
+            float pos[3], eular[3], scale[3];
+            ImGuizmo::DecomposeMatrixToComponents((float*)glm::value_ptr(empty_item->transform.getModelMat()),
+                pos, eular, scale);
+
+            ImGui::Text("Position");
+            ImGui::PushItemWidth(130.0f);
+            ImGui::InputFloat("P.x", &pos[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("P.y", &pos[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("P.z", &pos[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+
+            ImGui::NewLine();
+            ImGui::Text("Rotation");
+            ImGui::InputFloat("R.x", &eular[0], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("R.y", &eular[1], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("R.z", &eular[2], 1.0f, 0.1f, "%.1f"); ImGui::SameLine();
+
+            ImGui::NewLine();
+            ImGui::Text("Scale");
+            ImGui::InputFloat("S.x", &scale[0], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("S.y", &scale[1], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(4.0f, 0.0f)); ImGui::SameLine();
+            ImGui::InputFloat("S.z", &scale[2], 0.1f, 0.1f, "%.1f"); ImGui::SameLine();
+            ImGui::PopItemWidth();
+        }
+
         ImGui::NewLine();
         //Draw Mode
-        if (ImGui::CollapsingHeader("DrawMode"))
         {
             ImGui::Text(u8"绘制模式");
             const char* mode_items[] = { "Fill_Mode","WireFrame_Mode","Point_Mode" };
@@ -611,7 +612,6 @@ void RenderApp::DrawObjectWindow() {
             static int current_index = 0;
             if (ImGui::BeginCombo("##render_combo", current_item))
             {
-
                 for (unsigned int i = 0; i < IM_ARRAYSIZE(mode_items); i++)
                 {
                     bool is_selected = (current_item == mode_items[i]);
@@ -628,149 +628,261 @@ void RenderApp::DrawObjectWindow() {
                 }
                 ImGui::EndCombo();
             }
-
-
         }
         ImGui::NewLine();
         //More Details 
-        if (ImGui::CollapsingHeader("More Details"))
+        if (cur_item)
         {
-            if (cur_item)
+            ImVec2 fill_size = ImVec2(24, 30);
+            if (cur_item->hasRenderData())
             {
-                ImVec2 fill_size = ImVec2(24, 30);
-                if (cur_item->hasRenderData())
+                //Model Info
+                if (ImGui::CollapsingHeader("Model Info"))
                 {
-                    //Model Info
                     ImGui::Dummy(fill_size);
                     ImGui::SameLine();
-                    if (ImGui::CollapsingHeader("Model Info"))
+                    ImGui::LabelText("", "Mesh Size :  %u",
+                        cur_item->getModel().getMeshes().size());
+
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::LabelText("", "Vertex Size :  %u",
+                        cur_item->getModel().getVertexSum());
+
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::LabelText("", "Texture Size :  %u",
+                        cur_item->getModel().getTextureSum());
+
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::LabelText("", "Index Size :  %u",
+                        cur_item->getModel().getIndexSum());
+                }
+
+                //Material Info
+                if (ImGui::CollapsingHeader("Material Info"))
+                {
+                    std::vector<Mesh>& meshes = cur_item->getModel().getMeshes();
+                    static size_t current_index = 0;
+                    if (MESH_MAX_SIZE >= meshes.size())
                     {
+                        static const char* current_item = number[0];
                         ImGui::Dummy(fill_size);
                         ImGui::SameLine();
-                        ImGui::LabelText("", "Mesh Size :  %u",
-                            cur_item->getModel().get_Meshes().size());
+                        if (ImGui::BeginCombo("##Meshes", current_item))
+                        {
+                            for (unsigned int i = 0; i < meshes.size(); i++)
+                            {
+                                bool is_selected = (current_item == number[i]);
+                                if (ImGui::Selectable(number[i], is_selected))
+                                    current_item = number[current_index = i];
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        //Show Material        
+                        if (current_index > meshes.size())
+                            current_index = 0, current_item = number[0];
+                        Material& material = meshes[current_index].material;
+                        size_t p = 0;
+                        //Ambient
+                        ImGui::Dummy(fill_size);
+                        ImGui::SameLine();
+                        ImGui::ColorEdit3("Ambient", glm::value_ptr(material.Ambient));
+                        //Diffuse Mapping
+                        ImGui::NewLine(); ImGui::Dummy(fill_size);
+                        ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+                        ImGui::ColorEdit3("Diffuse ", glm::value_ptr(material.Diffuse));
+                        ImGui::SameLine();
+                        ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);             // Black background
+                        ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // No tint
+                        if (material.diffuseMapping)
+                        {
+                            if (ImGui::ImageButton("#Diffuse", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        }
+                        else
+                            if (ImGui::ImageButton("#Diffuse", 0, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
 
-                        ImGui::Dummy(fill_size);
+                        //Specular Mapping
+                        ImGui::NewLine(); ImGui::Dummy(fill_size);
+                        ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+                        ImGui::ColorEdit3("Specular", glm::value_ptr(material.Specular));
                         ImGui::SameLine();
-                        ImGui::LabelText("", "Vertex Size :  %u",
-                            cur_item->getModel().getVertexSum());
-
-                        ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
-                        ImGui::LabelText("", "Texture Size :  %u",
-                            cur_item->getModel().getTextureSum());
-
-                        ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
-                        ImGui::LabelText("", "Index Size :  %u",
-                            cur_item->getModel().getIndexSum());
+                        if (material.specularMapping)
+                        {
+                            if (ImGui::ImageButton("#Specular", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        }
+                        else
+                            if (ImGui::ImageButton("#Specular", 0, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        //Normal Mapping
+                        ImGui::Dummy(fill_size); ImGui::SameLine();
+                        ImGui::Text("Normal Map"); ImGui::SameLine();
+                        if (material.normalMapping)
+                        {
+                            if (ImGui::ImageButton("#Normal", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        }
+                        else
+                            if (ImGui::ImageButton("#Normal", 0, ImVec2(32, 32)))
+                                ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
+                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        //Shininess
+                        ImGui::Dummy(fill_size); ImGui::SameLine();
+                        ImGui::SliderFloat("Shininess", &material.Shininess, 0, 128);
                     }
 
-                    //Material Infor
                     ImGui::Dummy(fill_size);
                     ImGui::SameLine();
-                    if (ImGui::CollapsingHeader("Material Info"))
+                    Material& material = meshes[current_index].material;
+                    ImGui::Text(material.m_shader->vertexName.c_str());
+                    ImGui::SameLine();
+                    ImGui::Dummy(ImVec2(24 * 3, 30));
+                    ImGui::SameLine();
+                    if (ImGui::Button("Open .vert", ImVec2(24 * 6, 30)))
                     {
-                        std::vector<Mesh>& meshes = cur_item->getModel().get_Meshes();
-                        static size_t current_index = 0;
-                        if (MESH_MAX_SIZE >= meshes.size())
-                        {
+                        windowFlags->shader_window_open = true;
+                        windowFlags->shader_flag = VERTEX;
+                        editor.SetText(material.m_shader->vertexCode);
+                    }
 
-                            static const char* current_item = number[0];
-
-                            ImGui::Dummy(fill_size);
-                            ImGui::SameLine();
-                            if (ImGui::BeginCombo("##Meshes", current_item))
-                            {
-                                for (unsigned int i = 0; i < meshes.size(); i++)
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::Text(material.m_shader->fragmentName.c_str());
+                    ImGui::SameLine();
+                    ImGui::Dummy(ImVec2(24 * 3, 30));
+                    ImGui::SameLine();
+                    if (ImGui::Button("Open .frag", ImVec2(24 * 6, 30)))
+                    {
+                        windowFlags->shader_window_open = true;
+                        windowFlags->shader_flag = FRAGMENT;
+                        editor.SetText(material.m_shader->fragmentCode);
+                    }
+                    //Material Texture-Mapping
+                    std::vector<Texture>& textures = meshes[current_index].textures;
+                    for (size_t i = 0; i < 3; i++)
+                    {
+                        if (ifd::FileDialog::Instance().IsDone(material_dialogs[i])) {
+                            if (ifd::FileDialog::Instance().HasResult()) {
+                                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                                //old pic will be replaced with new pic
+                                if (res.size() == 1)
                                 {
-                                    bool is_selected = (current_item == number[i]);
-                                    if (ImGui::Selectable(number[i], is_selected))
-                                        current_item = number[current_index = i];
-                                    if (is_selected)
-                                        ImGui::SetItemDefaultFocus();
+                                    switch (i)
+                                    {
+                                    case 0:
+                                    {
+                                        if (material.diffuseMapping == false)
+                                        {
+                                            Texture tex;
+                                            tex.path = res[0].u8string();
+                                            tex.id = LoadTexture(tex.path.C_Str());
+                                            tex.type = "texture_diffuse";
+                                            textures.insert(textures.begin(), std::move(tex));
+                                        }
+                                        else
+                                        {
+                                            for (size_t j = 0; j < textures.size(); j++)
+                                            {
+                                                if (textures[j].type == "texture_diffuse")
+                                                {
+                                                    textures[j].path = res[0].u8string();
+                                                    glDeleteTextures(1, &textures[j].id);
+                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                                    textures[j].type = "texture_diffuse";
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        material.diffuseMapping = true;
+                                    }; break;
+                                    case 1:
+                                    {
+                                        if (material.specularMapping == false)
+                                        {
+                                            Texture tex;
+                                            tex.path = res[0].u8string();
+                                            tex.id = LoadTexture(tex.path.C_Str());
+                                            tex.type = "texture_specular";
+                                            for (size_t j = 0; j < textures.size(); j++)
+                                            {
+                                                if (textures[j].type == "texture_diffuse")
+                                                {
+                                                    textures.insert(textures.begin() + j, tex);
+                                                    break;
+                                                }
+                                            }
+                                            textures.insert(textures.begin(), std::move(tex));
+                                        }
+                                        else
+                                        {
+                                            for (size_t j = 0; j < textures.size(); j++)
+                                            {
+                                                if (textures[j].type == "texture_specular")
+                                                {
+                                                    textures[j].path = res[0].u8string();
+                                                    glDeleteTextures(1, &textures[j].id);
+                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                                    textures[j].type = "texture_specular";
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        material.specularMapping = true;
+                                    }; break;
+                                    case 2:
+                                    {
+                                        if (material.normalMapping == false)
+                                        {
+                                            Texture tex;
+                                            tex.path = res[0].u8string();
+                                            tex.id = LoadTexture(tex.path.C_Str());
+                                            tex.type = "texture_normal";
+                                            for (size_t j = 0; j < textures.size(); j++)
+                                            {
+                                                if (textures[j].type == "texture_specular")
+                                                {
+                                                    textures.insert(textures.begin() + j, tex);
+                                                    break;
+                                                }
+                                            }
+                                            textures.insert(textures.begin(), std::move(tex));
+                                        }
+                                        else
+                                        {
+                                            for (size_t j = 0; j < textures.size(); j++)
+                                            {
+                                                if (textures[j].type == "texture_normal")
+                                                {
+                                                    textures[j].path = res[0].u8string();
+                                                    glDeleteTextures(1, &textures[j].id);
+                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                                    textures[j].type = "texture_normal";
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        material.normalMapping = true;
+                                    }; break;
+                                    default:break;
+                                    }
+
                                 }
-                                ImGui::EndCombo();
                             }
-                            //Show Material        
-                            if (current_index > meshes.size())
-                                current_index = 0, current_item = number[0];
-                            Material& material = meshes[current_index].material;
-                            size_t p = 0;
-                            if (material.diffuseMapping)
-                            {
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::Text("Diffuse Map :");
-                                ImGui::Dummy(ImVec2(64,128));
-                                ImGui::SameLine();
-                                ImGui::Image((void*)meshes[current_index].textures[p++].id, ImVec2(128, 128));
-                            }
-                            else {
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::ColorEdit3("Material-Ambient", glm::value_ptr(material.Ambient));
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::ColorEdit3("Material-Diffuse", glm::value_ptr(material.Diffuse));
-                            }      
-                            if (material.specularMapping)
-                            {
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::Text("Specular Map :");
-                                ImGui::Dummy(ImVec2(64, 128));
-                                ImGui::SameLine();
-                                ImGui::Image((void*)meshes[current_index].textures[p++].id, ImVec2(128, 128));
-                            }
-                            else {
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::ColorEdit3("Material-Specular", glm::value_ptr(material.Specular));
-                            }
-                            if (material.normalMapping)
-                            {
-                                ImGui::Dummy(fill_size);
-                                ImGui::SameLine();
-                                ImGui::Text("Normal Map :");
-                                ImGui::Dummy(ImVec2(64, 128));
-                                ImGui::SameLine();
-                                ImGui::Image((void*)meshes[current_index].textures[p++].id, ImVec2(128, 128));
-                            }
-                            ImGui::Dummy(fill_size);
-                            ImGui::SameLine();
-                            ImGui::SliderFloat("Material-Shininess", &material.Shininess, 0, 128);
-                            
-                        }
-
-                        ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
-                        ImGui::Text(cur_item->getShader()->vertexName.c_str());
-                        ImGui::SameLine();
-                        ImGui::Dummy(ImVec2(24 * 3, 30));
-                        ImGui::SameLine();
-                        if (ImGui::Button("Open .vert", ImVec2(24 * 6, 30)))
-                        {
-                            windowFlags->shader_window_open = true;
-                            windowFlags->shader_flag = VERTEX;
-                            editor.SetText(cur_item->getShader()->vertexCode);
-                        }
-
-                        ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
-                        ImGui::Text(cur_item->getShader()->fragmentName.c_str());
-                        ImGui::SameLine();
-                        ImGui::Dummy(ImVec2(24 * 3, 30));
-                        ImGui::SameLine();
-                        if (ImGui::Button("Open .frag", ImVec2(24 * 6, 30)))
-                        {
-                            windowFlags->shader_window_open = true;
-                            windowFlags->shader_flag = FRAGMENT;
-                            editor.SetText(cur_item->getShader()->fragmentCode);
+                            ifd::FileDialog::Instance().Close();
                         }
                     }
                 }
- 
             }
         }
         ImGui::End();
@@ -783,22 +895,19 @@ void RenderApp::DrawObjectWindow() {
         //Set Style
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
         //Draw ObjectLists
-        for (size_t i = 0; i < items.size(); i++) 
+        for (size_t i = 0; i < items.size(); i++)
         {
             ImGui::AlignTextToFramePadding();
             float h = ImGui::GetTextLineHeight();
             ImGui::Dummy(ImVec2(h, h));
             ImGui::SameLine();
-            unsigned int textureId = LoadTexture("Resources/Icon/object.png");
             size_t flag = 0;
             //Draw Object Icon
-            ImGui::Image((void*)textureId, ImVec2(h, h));
+            ImGui::Image((void*)resources->object_icon, ImVec2(h, h));
             ImGui::SameLine();
-            //Draw Object[i]
-
             if (cur_item && cur_item == items[i])
                 flag = ImGuiTreeNodeFlags_Selected;
-
+            //Draw Object[i]
             bool expanded = ImGui::TreeNodeEx((void*)i, flag, "%s", items[i]->getName().c_str());
             //该结点若展开
             if (expanded && items[i] && items[i]->children.empty())
@@ -821,7 +930,6 @@ void RenderApp::DrawObjectWindow() {
         ImGui::PopStyleVar();
         ImGui::End();
     }
-    
 }
 
 void RenderApp::DrawMainMenuWindow()
@@ -918,7 +1026,7 @@ void RenderApp::DrawMainMenuWindow()
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
-
+        //Process FileDialog Result
         if (ifd::FileDialog::Instance().IsDone("ModelFileDialog")) {
             if (ifd::FileDialog::Instance().HasResult()) {
                 const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
@@ -1032,7 +1140,7 @@ void RenderApp::DrawToolWindow()
         //fill the gap between cameraIcon and lightIcon
         ImGui::TableNextColumn();
         ImGui::Dummy(ImVec2(10, 10));
-        //Lgiht Icon
+        //Light Icon
         ImGui::TableNextColumn();
         ImGui::Image((void*)resources->light_icon, item_size);
         if (ImGui::IsItemHovered())
@@ -1115,7 +1223,6 @@ inline void RenderApp::DrawCameraToolWindow()
         ImGui::Checkbox("Should Look At Current Item?", &windowFlags->shouldLookAtCurItem);
         if (!windowFlags->shouldLookAtCurItem)
         {
-            cur_camera->At = glm::vec3(0, 0, 0);
             ImGui::InputFloat3("Look At", glm::value_ptr(cur_camera->At), "%.1f");
         }
         else if (cur_item && windowFlags->shouldLookAtCurItem)
@@ -1154,10 +1261,9 @@ inline void RenderApp::DrawLightToolWindow()
                     ImGui::ColorEdit3("DirLight Diffuse", glm::value_ptr(lightManager->dirLight->diffuse));
                     ImGui::ColorEdit3("DirLight Specular", glm::value_ptr(lightManager->dirLight->specular));
                     //Change the uniform value in default_shader
-                    shaderManager->default_shader->use();
-                    shaderManager->default_shader->setDirLight(*(lightManager->dirLight));
+                    shaderManager->default_shader.use();
+                    shaderManager->default_shader.setDirLight(*(lightManager->dirLight));
                 }
-
             }
             if (ImGui::CollapsingHeader("PointLight Atrribute"))
             {
@@ -1177,8 +1283,8 @@ inline void RenderApp::DrawLightToolWindow()
                     ImGui::ColorEdit3("PointLight Diffuse", glm::value_ptr(lightManager->pointLight->diffuse));
                     ImGui::ColorEdit3("PointLight Specular", glm::value_ptr(lightManager->pointLight->specular));
 
-                    shaderManager->default_shader->use();
-                    shaderManager->default_shader->setPointLight(*(lightManager->pointLight));
+                    shaderManager->default_shader.use();
+                    shaderManager->default_shader.setPointLight(*(lightManager->pointLight));
                 }
             }
             if (ImGui::CollapsingHeader("SpotLight Atrribute"))
@@ -1344,15 +1450,15 @@ inline void RenderApp::DrawEffectToolWindow()
                 switch (current_index)
                 {
                 case 0:windowFlags->effectFlags = INVERSION_EFFECT;
-                    shaderManager->cur_effect_shader = shaderManager->inversion_shader; break;
+                    shaderManager->cur_effect_shader = &(shaderManager->inversion_shader); break;
                 case 1:windowFlags->effectFlags = GRAYSCALE_EFFECT;
-                    shaderManager->cur_effect_shader = shaderManager->grayscale_shader; break;
+                    shaderManager->cur_effect_shader = &(shaderManager->grayscale_shader); break;
                 case 2:windowFlags->effectFlags = SHARPEN_EFFECT;
-                    shaderManager->cur_effect_shader = shaderManager->sharpen_shader; break;
+                    shaderManager->cur_effect_shader = &(shaderManager->sharpen_shader); break;
                 case 3:windowFlags->effectFlags = BLUR_EFFECT;
-                    shaderManager->cur_effect_shader = shaderManager->blur_shader; break;
+                    shaderManager->cur_effect_shader = &(shaderManager->blur_shader); break;
                 case 4:windowFlags->effectFlags = EDGE_DETECTION_EFFECT;
-                    shaderManager->cur_effect_shader = shaderManager->edge_detection_shader; break;
+                    shaderManager->cur_effect_shader = &(shaderManager->edge_detection_shader); break;
                 }
                 ImGui::EndCombo();
             }
@@ -1420,16 +1526,21 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
     glClear(GL_COLOR_BUFFER_BIT |GL_DEPTH_BUFFER_BIT);
     for (size_t i = 0; i < items.size(); i++)
     {
-        if (!items[i]->isDisabled()) {
-            items[i]->setShader(shaderManager->picking_shader);
-            items[i]->getShader()->use();
-            items[i]->getShader()->setMat4("projection", projection);
-            items[i]->getShader()->setMat4("view", view);
-            items[i]->getShader()->setUint("ModelIndex", i);
-            items[i]->EnablePicking();
-            items[i]->Draw();
-            items[i]->DisablePicking();
-        }
+        //第i个模型未被禁用
+        if (!items[i]->isDisabled())  
+            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
+            {
+                Material& material = items[i]->getModel().getMeshes()[j].material;
+                material.setShader(&shaderManager->picking_shader);
+                material.m_shader->use();
+                material.m_shader->setMVP(items[i]->transform.getModelMat(),
+                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+                material.m_shader->setUint("ModelIndex", i);
+                material.m_shader->setUint("MeshSize", 
+                    items[i]->getModel().getMeshes().size());
+                items[i]->getModel().getMeshes()[j].Draw_PickingEffects(j);
+
+            }     
     }
     pickingTexture->DisableWriting();
     // bind to custom framebuffer and draw scene as we normally would to color texture 
@@ -1440,16 +1551,21 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     //Draw Object
-    for (unsigned int i = 0; i < items.size(); i++) {
-        if (!items[i]->isDisabled())
-        {
-            items[i]->setShader(shaderManager->default_shader);
-            items[i]->getShader()->use();
-            items[i]->getShader()->setVec3("viewPos", cur_camera->Position);
-            items[i]->getShader()->setMat4("projection", projection);
-            items[i]->getShader()->setMat4("view", view);
-            items[i]->Draw();
-        }
+    for (unsigned int i = 0; i < items.size(); i++) 
+    {
+        if (!items[i]->isDisabled()) 
+            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
+            {
+                Material& material = items[i]->getModel().getMeshes()[j].material;
+                material.setShader(&shaderManager->default_shader);
+                material.m_shader->use();
+                material.m_shader->setMVP(items[i]->transform.getModelMat(),
+                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+                material.m_shader->setDirLight(*(lightManager->dirLight));
+                material.m_shader->setPointLight(*(lightManager->pointLight));
+                material.m_shader->setVec3("viewPos", cur_camera->Position);
+                items[i]->getModel().getMeshes()[j].Draw();
+            }     
     }
     glDisable(GL_CULL_FACE);
     //Skybox 
@@ -1457,11 +1573,11 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
     {
         // change depth function so depth test passes when values are equal to depth buffer's content
         glDepthFunc(GL_LEQUAL);
-        shaderManager->skybox_shader->use();
+        shaderManager->skybox_shader.use();
         //remove translation from view matrix
         view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
-        shaderManager->skybox_shader->setMat4("view", view);
-        shaderManager->skybox_shader->setMat4("projection", projection);
+        shaderManager->skybox_shader.setMat4("view", view);
+        shaderManager->skybox_shader.setMat4("projection", projection);
         //skybox cube
         glBindVertexArray(skyboxVAO);
         glActiveTexture(GL_TEXTURE0);
@@ -1471,7 +1587,6 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         glDepthFunc(GL_LESS);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     //Post-Processing
     if (windowFlags->isEffectOn)
     {
@@ -1479,9 +1594,7 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         glDisable(GL_DEPTH_TEST);
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
         shaderManager->cur_effect_shader->use();
-
         glBindVertexArray(screenVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_texture);

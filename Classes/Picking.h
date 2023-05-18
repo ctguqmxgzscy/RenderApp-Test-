@@ -114,7 +114,6 @@ class RenderItem{
 private:
 	Model* m_Model_;
     std::string _name;
-    Shader* _shader; 
 private:
     bool _is_shader_loaded = false;
     bool _is_diabled = false;
@@ -126,13 +125,8 @@ public:
     RenderItem();
 	~RenderItem();
 public:
-    void EnablePicking();
-    void DisablePicking();
     //绘制函数，可以使用EnablePicking()和DisablePicking()来控制是绘制到自定义的帧缓存还是系统帧缓存的颜色缓存中
     void Draw(); 
-    void Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex);
-    void Draw_Triangle_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, 
-        unsigned int drawIndex,unsigned int primitiveIndex);
 	bool hasRenderData() { if (this->m_Model_) return true; return false; }
 public:
 	//Scene Graph
@@ -185,8 +179,6 @@ public:
     void setName(std::string name) {this->_name = name;}
     bool isDisabled() { return this->_is_diabled; }
     bool* getDisabled() { return &_is_diabled; }
-	void setShader(Shader* shader) { _shader = shader; _is_shader_loaded = true; }
-    Shader* getShader() { return this->_shader; }
 };
 
 class PickingTexture {

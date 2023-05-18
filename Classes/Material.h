@@ -7,19 +7,21 @@
 class Material
 {
 public:
-	Material() {};
+	Material();
 	Material(const Material& rhs);
+public:
+	Shader* m_shader;
 	std::string Name;
-
 	bool diffuseMapping = false;
 	bool normalMapping = false;
 	bool specularMapping = false;
 
-	glm::vec3 Diffuse = { 1.0f,1.0f,1.0f };
-	glm::vec3 Ambient = { 0.01f,0.01f,0.01f };
-	glm::vec3 Specular = { 1.0f,1.0f,1.0 };
-	float Shininess = 32.f;
+	glm::vec3 Diffuse;
+	glm::vec3 Ambient;
+	glm::vec3 Specular;
+	float Shininess;
 public:
-	void setShader(Shader shader);
+	void setShader(Shader* shader);
+	void setShaderProp();
 };
 

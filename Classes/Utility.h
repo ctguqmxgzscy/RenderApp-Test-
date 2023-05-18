@@ -122,6 +122,7 @@ struct WindowResources
 	unsigned int skybox_icon;
 	unsigned int effect_icon;
 	unsigned int shader_icon;
+	unsigned int object_icon;
 
 	std::vector<std::string> skybox_faces
 	{
@@ -144,6 +145,13 @@ std::string skybox_dialogs[6] =
 	"SkyboxRightImageOpenDialog",
 	"SkyboxBackImageOpenDialog",
 	"SkyboxBottomImageOpenDialog"
+};
+
+std::string material_dialogs[3] =
+{
+	"DiffuseMapping",
+	"SpecularMapping",
+	"NormalMapping"
 };
 
 

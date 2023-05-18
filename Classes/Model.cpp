@@ -20,39 +20,33 @@ Model::~Model()
 	this->textures_loaded.clear();
 }
 
-void Model::Draw(Shader shader)
+void Model::Draw()
 {
-	if (this->isPicking)
-	{
-		shader.use();
-		shader.setFloat("MeshSize", this->meshes.size());
-	}
-
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
 		if (this->isPicking) {
-			meshes[i].Draw_PickingEffects(shader, i);
+			meshes[i].Draw_PickingEffects(i);
 		}
 		else
-			meshes[i].Draw(shader);
+			meshes[i].Draw();
 
 	}
 }
 
-void Model::Draw_DefaultEffects(Shader shader) 
+void Model::Draw_DefaultEffects() 
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
-			meshes[i].Draw_Mesh_SimpleColor(shader);
+			meshes[i].Draw_Mesh_SimpleColor();
 	}
 }
 
-void Model::Draw(Shader shader, unsigned int excluded_index)
+void Model::Draw(unsigned int excluded_index)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
 		if (i != excluded_index)
-			meshes[i].Draw(shader);
+			meshes[i].Draw();
 	}
 }
 
@@ -102,7 +96,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 	std::vector<Vertex> vertices;
 	std::vector<Texture> textures;
 	std::vector<unsigned int>indices;
-
+	
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 		Vertex vertex;
 		vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y,
@@ -114,7 +108,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		else {
 			printf("There is anymore normal!\n");
 		}
-
 		//检测网格是否拥有纹理坐标,有的话只获得第一组纹理坐标
 		if (mesh->mTextureCoords[0]) {
 			vertex.TexCoord = glm::vec2(mesh->mTextureCoords[0][i].x,
@@ -135,7 +128,6 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		}
 		vertices.push_back(vertex);
 	}
-
 	//一个网格由很多面组成
 	for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
 		aiFace face = mesh->mFaces[i];

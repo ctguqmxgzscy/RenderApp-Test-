@@ -95,54 +95,11 @@ RenderItem::~RenderItem()
 }
 
 void RenderItem::Draw() {
-    if (this->m_Model_) {
-        if (_is_shader_loaded) {
-            _shader->use();
-            _shader->setMat4("model", this->transform.getModelMat());
-
-            this->m_Model_->Draw(*_shader);
-        }
-        else {
-            _shader->use();
-            _shader->setMat4("model", this->transform.getModelMat());
-            this->m_Model_->Draw_DefaultEffects(*_shader);
-        }
-    }
+    if (this->m_Model_) 
+        if (_is_shader_loaded) 
+            this->m_Model_->Draw();
+        else 
+            this->m_Model_->Draw_DefaultEffects();
     else
          return;
-}
-
-void RenderItem::EnablePicking()
-{
-
-    if (this->m_Model_)
-        this->m_Model_->EnablePicking();
-    else
-        return;
-}
-
-void RenderItem::DisablePicking()
-{
-    if (this->m_Model_)
-        this->m_Model_->DisablePicking();
-    else
-        return;
-}
-
-
-void RenderItem::Draw_Mesh_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex)
-{
-    _exclude_shader.use();
-    this->m_Model_->Draw(_exclude_shader, drawIndex);
-    _simple_color_shader.use();
-    this->m_Model_->get_Meshes()[drawIndex].Draw_Mesh_SimpleColor(_simple_color_shader);
-}
-
-void RenderItem::Draw_Triangle_Onclicked(Shader _exclude_shader, Shader _simple_color_shader, unsigned int drawIndex, unsigned int primitiveIndex)
-{
-    //启用正常的模型着色器，把第drawIndex个网格除外的网格全部绘制出来
-    _exclude_shader.use();
-    this->m_Model_->Draw(_exclude_shader, drawIndex);
-    //绘制第drawIndex个网格的第PrimitiveIndex个片元（这里是三角形）
-    this->m_Model_->get_Meshes()[drawIndex].Draw_Triangle_SimpleColor(_exclude_shader,_simple_color_shader, primitiveIndex);
 }
