@@ -39,6 +39,7 @@ bool PickingTexture::Init(unsigned int WindowWidth, unsigned int WindowHeight)
 
 PickingTexture::PixelInfo PickingTexture::ReadPixel(unsigned int x, unsigned int y)
 {
+
     glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     PixelInfo Pixel;

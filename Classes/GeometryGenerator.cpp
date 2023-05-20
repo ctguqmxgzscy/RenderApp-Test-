@@ -5,51 +5,30 @@
 GeometryGenerator::MeshData 
 GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
 {
+	Vertex v[24];
 	MeshData meshData;
 
-	Vertex v[24];
+	float w2 = 0.5f * width;
+	float h2 = 0.5f * height;
+	float d2 = 0.5f * depth;
 
-	float w2 = 0.5 * width;
-	float h2 = 0.5 * height;
-	float d2 = 0.5 * depth;
-
-#pragma region Create Vertex Data
-	//Vertex Structure
-	//			------postion------ -----normal-----  -----Tangent------- --TexCoord---
-	//	v[0] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	//Front 
+	// Fill in the front face vertex data.
 	v[0] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	v[1] = Vertex(-w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 	v[2] = Vertex(+w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 	v[3] = Vertex(+w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
-	//Back
-	v[4] = Vertex(-w2, -h2, +d2, 0.0f, 0.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-	v[5] = Vertex(+w2, -h2, +d2, 0.0f, 0.0f, +1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	v[6] = Vertex(+w2, +h2, +d2, 0.0f, 0.0f, +1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[7] = Vertex(-w2, +h2, +d2, 0.0f, 0.0f, +1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+	// Fill in the back face vertex data.
+	v[4] = Vertex(-w2, -h2, +d2, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+	v[5] = Vertex(+w2, -h2, +d2, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	v[6] = Vertex(+w2, +h2, +d2, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[7] = Vertex(-w2, +h2, +d2, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
-	//Top
-	v[8] = Vertex(-w2, +h2, -d2, 0.0f, +1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	v[9] = Vertex(-w2, +h2, +d2, 0.0f, +1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[10] = Vertex(+w2, +h2, +d2, 0.0f, +1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-	v[11] = Vertex(+w2, +h2, -d2, 0.0f, +1.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-
-	//Bottom						    
-	v[12] = Vertex(-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-	v[13] = Vertex(+w2, -h2, -d2, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	v[14] = Vertex(+w2, -h2, +d2, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[15] = Vertex(-w2, -h2, +d2, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-	//Left
-	v[16] = Vertex(-w2, -h2, -d2, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f);
-	v[17] = Vertex(-w2, -h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f);
-	v[18] = Vertex(-w2, +h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f);
-	v[19] = Vertex(-w2, +h2, -d2, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f);
-	//Right
-	v[20] = Vertex(+w2, -h2, -d2, +1.0f, 0.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f, 1.0f);
-	v[21] = Vertex(+w2, +h2, -d2, +1.0f, 0.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f, 1.0f);
-	v[22] = Vertex(+w2, +h2, +d2, +1.0f, 0.0f, 0.0f, 0.0f, +1.0f, 0.0f, 0.0f, 0.0f);
-	v[23] = Vertex(+w2, -h2, +d2, +1.0f, 0.0f, 0.0f, 0.0f, +1.0f, 0.0f, 1.0f, 0.0f);
+	// Fill in the top face vertex data.
+	v[8] = Vertex(-w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	v[9] = Vertex(-w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[10] = Vertex(+w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+	v[11] = Vertex(+w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 
 	// Fill in the bottom face vertex data.
 	v[12] = Vertex(-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
@@ -68,39 +47,46 @@ GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numS
 	v[21] = Vertex(+w2, +h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 	v[22] = Vertex(+w2, +h2, +d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 	v[23] = Vertex(+w2, -h2, +d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-	//Copy Vertex Data
-	meshData.Vertices.assign(&v[0], &v[24]);
-#pragma endregion
 
-#pragma region Create Index Data
+	 meshData.Vertices.assign(&v[0], &v[24]);
+
+	//
+	// Create the indices.
+	//
+
 	uint32 i[36];
-	//Front Index
-	i[0] = 0, i[1] = 1, i[2] = 2;
-	i[3] = 0, i[4] = 2, i[5] = 3;
-	//Back Index
-	i[6] = 4, i[7] = 5, i[8] = 6;
-	i[9] = 4, i[10] = 6, i[11] = 7;
-	//Top Index
-	i[12] = 8, i[13] = 9, i[14] = 10;
-	i[15] = 8, i[16] = 10, i[17] = 11;
-	//Bottom Index
-	i[18] = 12, i[19] = 13, i[20] = 14;
-	i[21] = 12, i[22] = 14, i[23] = 15;
-	//Left Index
-	i[24] = 16, i[25] = 17, i[26] = 18;
-	i[27] = 16, i[28] = 18, i[29] = 19;
-	//Right Index
-	i[30] = 20, i[31] = 21, i[32] = 22;
-	i[33] = 20, i[34] = 22, i[35] = 23;
-	//Copy Index Data
-	meshData.Indices32.assign(&i[0], &i[36]);
-#pragma endregion
 
-	//Put a cap on the number of subdivisions
+	// Fill in the front face index data
+	i[0] = 0; i[1] = 1; i[2] = 2;
+	i[3] = 0; i[4] = 2; i[5] = 3;
+
+	// Fill in the back face index data
+	i[6] = 4; i[7] = 5; i[8] = 6;
+	i[9] = 4; i[10] = 6; i[11] = 7;
+
+	// Fill in the top face index data
+	i[12] = 8; i[13] = 9; i[14] = 10;
+	i[15] = 8; i[16] = 10; i[17] = 11;
+
+	// Fill in the bottom face index data
+	i[18] = 12; i[19] = 13; i[20] = 14;
+	i[21] = 12; i[22] = 14; i[23] = 15;
+
+	// Fill in the left face index data
+	i[24] = 16; i[25] = 17; i[26] = 18;
+	i[27] = 16; i[28] = 18; i[29] = 19;
+
+	// Fill in the right face index data
+	i[30] = 20; i[31] = 21; i[32] = 22;
+	i[33] = 20; i[34] = 22; i[35] = 23;
+
+	meshData.Indices32.assign(&i[0], &i[36]);
+
+	// Put a cap on the number of subdivisions.
 	numSubdivisions = std::min<uint32>(numSubdivisions, 6u);
-	for (uint32 i = 0; i < numSubdivisions; ++i) {
+
+	for (uint32 i = 0; i < numSubdivisions; ++i)
 		Subdivide(meshData);
-	}
 
 	return meshData;
 }
@@ -108,8 +94,11 @@ GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numS
 GeometryGenerator::MeshData
 GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCount) {
 	MeshData meshData;
-#pragma region Create Vertex Data
+
+	//
 	// Compute the vertices stating at the top pole and moving down the stacks.
+	//
+
 	// Poles: note that there will be texture coordinate distortion as there is
 	// not a unique point on the texture map to assign to the pole when mapping
 	// a rectangular texture onto a sphere.
@@ -121,29 +110,32 @@ GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCou
 	float phiStep = glm::pi<float>() / stackCount;
 	float thetaStep = 2.0f * glm::pi<float>() / sliceCount;
 
-	//Compute vertices for each stack ring(do ot count the poles as rings);
-	for (uint32 i = 1; i <= stackCount - 1; ++i) {
+	// Compute vertices for each stack ring (do not count the poles as rings).
+	for (uint32 i = 1; i <= stackCount - 1; ++i)
+	{
 		float phi = i * phiStep;
 
-		//Vertices of ring.
-		for (uint32 j = 0; j <= sliceCount; ++j) {
+		// Vertices of ring.
+		for (uint32 j = 0; j <= sliceCount; ++j)
+		{
 			float theta = j * thetaStep;
+
 			Vertex v;
 
-			//spherical to cartesian
+			// spherical to cartesian
 			v.Position.x = radius * sinf(phi) * cosf(theta);
 			v.Position.y = radius * cosf(phi);
 			v.Position.z = radius * sinf(phi) * sinf(theta);
 
-			//Partial derivative of P with respect to theta
+			// Partial derivative of P with respect to theta
 			v.TangentU.x = -radius * sinf(phi) * sinf(theta);
 			v.TangentU.y = 0.0f;
 			v.TangentU.z = +radius * sinf(phi) * cosf(theta);
 
-			v.TangentU = normalize(v.TangentU);
-			v.Normal = normalize(v.Position);
-			//x > 0 &x < 1   y > =0&&y < =1 
-			v.TexC.x = theta / glm::pi<float>();
+			v.TangentU = glm::normalize(v.TangentU);
+			v.Normal = glm::normalize(v.Position);
+
+			v.TexC.x = theta / glm::two_pi<float>();
 			v.TexC.y = phi / glm::pi<float>();
 
 			meshData.Vertices.push_back(v);
@@ -151,23 +143,31 @@ GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCou
 	}
 
 	meshData.Vertices.push_back(bottomVertex);
-#pragma endregion
 
-#pragma region Create Index Data
+	//
 	// Compute indices for top stack.  The top stack was written first to the vertex buffer
 	// and connects the top pole to the first ring.
-	for (uint32 i = 1; i <= sliceCount; ++i) {
+	//
+
+	for (uint32 i = 1; i <= sliceCount; ++i)
+	{
 		meshData.Indices32.push_back(0);
 		meshData.Indices32.push_back(i + 1);
 		meshData.Indices32.push_back(i);
 	}
+
+	//
 	// Compute indices for inner stacks (not connected to poles).
+	//
+
 	// Offset the indices to the index of the first vertex in the first ring.
 	// This is just skipping the top pole vertex.
 	uint32 baseIndex = 1;
 	uint32 ringVertexCount = sliceCount + 1;
-	for (uint32 i = 0; i < stackCount - 2; ++i) {
-		for (uint32 j = 0; j < sliceCount; ++j) {
+	for (uint32 i = 0; i < stackCount - 2; ++i)
+	{
+		for (uint32 j = 0; j < sliceCount; ++j)
+		{
 			meshData.Indices32.push_back(baseIndex + i * ringVertexCount + j);
 			meshData.Indices32.push_back(baseIndex + i * ringVertexCount + j + 1);
 			meshData.Indices32.push_back(baseIndex + (i + 1) * ringVertexCount + j);
@@ -177,28 +177,163 @@ GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCou
 			meshData.Indices32.push_back(baseIndex + (i + 1) * ringVertexCount + j + 1);
 		}
 	}
+
+	//
 	// Compute indices for bottom stack.  The bottom stack was written last to the vertex buffer
 	// and connects the bottom pole to the bottom ring.
+	//
+
 	// South pole vertex was added last.
 	uint32 southPoleIndex = (uint32)meshData.Vertices.size() - 1;
+
+	// Offset the indices to the index of the first vertex in the last ring.
 	baseIndex = southPoleIndex - ringVertexCount;
-	for (uint32 i = 0; i < sliceCount; ++i) {
+
+	for (uint32 i = 0; i < sliceCount; ++i)
+	{
 		meshData.Indices32.push_back(southPoleIndex);
 		meshData.Indices32.push_back(baseIndex + i);
 		meshData.Indices32.push_back(baseIndex + i + 1);
 	}
-#pragma endregion
 
+	return meshData;
+}
+
+GeometryGenerator::MeshData 
+GeometryGenerator::CreateGridLine(float width, float depth, uint32 m, uint32 n)
+{
+	MeshData meshData;
+
+	uint32 vertexCount = m * n;
+	uint32 lineCount = m + n;
+
+	//
+	// Create the vertices.
+	//
+
+	float halfWidth = 0.5f * width;
+	float halfDepth = 0.5f * depth;
+
+	float dx = width / (n - 1);
+	float dz = depth / (m - 1);
+
+	float du = 1.0f / (n - 1);
+	float dv = 1.0f / (m - 1);
+
+	meshData.Vertices.resize(vertexCount);
+	for (uint32 i = 0; i < m; ++i)
+	{
+		float z = halfDepth - i * dz;
+		for (uint32 j = 0; j < n; ++j)
+		{
+			float x = -halfWidth + j * dx;
+
+			meshData.Vertices[i * n + j].Position = glm::vec3(x, 0.0f, z);
+			meshData.Vertices[i * n + j].Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+			meshData.Vertices[i * n + j].TangentU = glm::vec3(1.0f, 0.0f, 0.0f);
+
+			// Stretch texture over grid.
+			meshData.Vertices[i * n + j].TexC.x = j * du;
+			meshData.Vertices[i * n + j].TexC.y = i * dv;
+		}
+	}
+
+	//
+	// Create the indices.
+	//
+	meshData.Indices32.resize(lineCount * 2); // 3 indices per face
+
+	// Iterate over each quad and compute indices.
+	uint32 k = 0;
+	for (uint32 i = 0; i < m; ++i)
+	{
+		meshData.Indices32[k] = i * n;
+		meshData.Indices32[k + 1] = i * n + n - 1;
+		k += 2;
+	}
+	for (uint32 j = 0; j < n; ++j)
+	{
+		meshData.Indices32[k] = j;
+		meshData.Indices32[k + 1] = (m - 1) * n + j;
+		k += 2;
+	}
+
+	return meshData;
+}
+
+GeometryGenerator::MeshData
+GeometryGenerator::CreateGrid(float width, float depth, uint32 m, uint32 n)
+{
+	MeshData meshData;
+
+	uint32 vertexCount = m * n;
+	uint32 faceCount = (m - 1) * (n - 1) * 2;
+
+	//
+	// Create the vertices.
+	//
+
+	float halfWidth = 0.5f * width;
+	float halfDepth = 0.5f * depth;
+
+	float dx = width / (n - 1);
+	float dz = depth / (m - 1);
+
+	float du = 1.0f / (n - 1);
+	float dv = 1.0f / (m - 1);
+
+	meshData.Vertices.resize(vertexCount);
+	for (uint32 i = 0; i < m; ++i)
+	{
+		float z = halfDepth - i * dz;
+		for (uint32 j = 0; j < n; ++j)
+		{
+			float x = -halfWidth + j * dx;
+
+			meshData.Vertices[i * n + j].Position = glm::vec3(x, 0.0f, z);
+			meshData.Vertices[i * n + j].Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+			meshData.Vertices[i * n + j].TangentU = glm::vec3(1.0f, 0.0f, 0.0f);
+
+			// Stretch texture over grid.
+			meshData.Vertices[i * n + j].TexC.x = j * du;
+			meshData.Vertices[i * n + j].TexC.y = i * dv;
+		}
+	}
+
+	//
+	// Create the indices.
+	//
+
+	meshData.Indices32.resize(faceCount * 3); // 3 indices per face
+
+	// Iterate over each quad and compute indices.
+	uint32 k = 0;
+	for (uint32 i = 0; i < m - 1; ++i)
+	{
+		for (uint32 j = 0; j < n - 1; ++j)
+		{
+			meshData.Indices32[k] = i * n + j;
+			meshData.Indices32[k + 1] = i * n + j + 1;
+			meshData.Indices32[k + 2] = (i + 1) * n + j;
+
+			meshData.Indices32[k + 3] = (i + 1) * n + j;
+			meshData.Indices32[k + 4] = i * n + j + 1;
+			meshData.Indices32[k + 5] = (i + 1) * n + j + 1;
+
+			k += 6; // next quad
+		}
+	}
 
 	return meshData;
 }
 
 void
 GeometryGenerator::Subdivide(MeshData& meshData) {
-	MeshData copy = meshData;
+	// Save a copy of the input geometry.
+	MeshData inputCopy = meshData;
 
-	meshData.Vertices.reserve(0);
-	meshData.Indices32.reserve(0);
+	meshData.Vertices.resize(0);
+	meshData.Indices32.resize(0);
 
 	//       v1
 	//       *
@@ -210,29 +345,36 @@ GeometryGenerator::Subdivide(MeshData& meshData) {
 	// *-----*-----*
 	// v0    m2     v2
 
-	uint32 numTriangles = (uint32)meshData.Vertices.size() / 3;
-	for (uint32 i = 0; i < numTriangles; ++i) {
+	uint32 numTris = (uint32)inputCopy.Indices32.size() / 3;
+	for (uint32 i = 0; i < numTris; ++i)
+	{
+		Vertex v0 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 0]];
+		Vertex v1 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 1]];
+		Vertex v2 = inputCopy.Vertices[inputCopy.Indices32[i * 3 + 2]];
 
-		Vertex v0 = copy.Vertices[copy.Indices32[i * 3 + 0]];
-		Vertex v1 = copy.Vertices[copy.Indices32[i * 3 + 1]];
-		Vertex v2 = copy.Vertices[copy.Indices32[i * 3 + 2]];
+		//
+		// Generate the midpoints.
+		//
 
-		//Generate the midpoints
 		Vertex m0 = MidPoint(v0, v1);
 		Vertex m1 = MidPoint(v1, v2);
 		Vertex m2 = MidPoint(v0, v2);
 
-		meshData.Vertices.push_back(v0);//0
-		meshData.Vertices.push_back(v1);//1
-		meshData.Vertices.push_back(v2);//2
-		meshData.Vertices.push_back(m0);//3
-		meshData.Vertices.push_back(m1);//4
-		meshData.Vertices.push_back(m2);//5
+		//
+		// Add new geometry.
+		//
+
+		meshData.Vertices.push_back(v0); // 0
+		meshData.Vertices.push_back(v1); // 1
+		meshData.Vertices.push_back(v2); // 2
+		meshData.Vertices.push_back(m0); // 3
+		meshData.Vertices.push_back(m1); // 4
+		meshData.Vertices.push_back(m2); // 5
 
 		meshData.Indices32.push_back(i * 6 + 0);
 		meshData.Indices32.push_back(i * 6 + 3);
 		meshData.Indices32.push_back(i * 6 + 5);
-		
+
 		meshData.Indices32.push_back(i * 6 + 3);
 		meshData.Indices32.push_back(i * 6 + 4);
 		meshData.Indices32.push_back(i * 6 + 5);
@@ -256,6 +398,8 @@ GeometryGenerator::MidPoint(const Vertex& v0, const Vertex& v1) {
 	v.TexC = 0.5f * (v0.TexC + v1.TexC);
 	return v;
 }
+
+
 
 void Node::updateModelMat()
 {

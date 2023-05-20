@@ -178,7 +178,6 @@
   <ItemGroup>
     <ClInclude Include="Classes\RenderApp.h" />
     <ClInclude Include="Classes\Camera.h" />
-    <ClInclude Include="Classes\Lighting_Test.h" />
     <ClInclude Include="Classes\Material.h" />
     <ClInclude Include="Classes\Mesh.h" />
     <ClInclude Include="Classes\Model.h" />
@@ -187,6 +186,8 @@
     <ClInclude Include="Classes\STBI.h" />
     <ClInclude Include="Classes\stb_image.h" />
     <ClInclude Include="Classes\GeometryGenerator.h" />
+    <ClInclude Include="Classes\stb_image_resize.h" />
+    <ClInclude Include="Classes\stb_image_write.h" />
     <ClInclude Include="Classes\Utility.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\ImFileDialog.h" />
@@ -215,9 +216,9 @@
     <None Include="Shaders\DiffuseMap.frag" />
     <None Include="Shaders\DiffuseMap.vert" />
     <None Include="Shaders\Edge-Detection.frag" />
-    <None Include="Shaders\glm.frag" />
-    <None Include="Shaders\glm.vert" />
     <None Include="Shaders\Grayscale.frag" />
+    <None Include="Shaders\gridline.frag" />
+    <None Include="Shaders\gridline.vert" />
     <None Include="Shaders\Inversion.frag" />
     <None Include="Shaders\Light.frag" />
     <None Include="Shaders\Light.vert" />
@@ -238,8 +239,6 @@
     <None Include="Shaders\skybox.vert" />
     <None Include="Shaders\standard.frag" />
     <None Include="Shaders\standard.vert" />
-    <None Include="Shaders\triangle.frag" />
-    <None Include="Shaders\triangle.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\awesomeface.png" />

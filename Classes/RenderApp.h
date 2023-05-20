@@ -31,7 +31,6 @@ float camDistance = 8.f;
 class RenderApp
 {
 private:
-
     GLFWwindow* window;
     TextEditor editor;
 
@@ -39,6 +38,7 @@ private:
     WindowFlags* windowFlags;
     LightManager* lightManager;
     ShaderManager* shaderManager;
+    GeometryGenerator* generator;
 
     PickingTexture* pickingTexture;
     LeftMouse* leftMouse;
@@ -52,10 +52,12 @@ private:
     size_t skyboxVAO, skyboxVBO, skyboxTextureID;
     //ScreenTexture VAO,VBO
     size_t  screenVAO, screenVBO;
-    //Custom Framebuffer and texture
-    size_t m_fbo, m_texture;
     //Effecs Framebuffer and texture
     size_t screenFbo, screenTexture;
+    //Custom Framebuffer and texture
+    size_t m_fbo, m_texture;
+    //MSAA Framebuffer and texture
+    size_t m_fbo_msaa, m_texture_msaa;
     //3D Gizmo Manipulation
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     ImGuizmo::MODE mCurrentGizmoMode;
@@ -69,14 +71,12 @@ public:
 
     float deltaTime = 0.0f; // 当前帧与上一帧的时间差
     float lastFrame = 0.0f; // 上一帧的时间
-
 public:
     RenderApp();
     ~RenderApp();
     int Run();
     void DrawUI(ImGuiIO& io);
     int Init();
-
 public:
     void ProcessInput(GLFWwindow* window);
     void SetGUI();
@@ -85,13 +85,18 @@ public:
     void DrawMainMenuWindow();
     void DrawToolWindow();
 private:
-    void CreateFBO(int width, int height);
     void DrawCameraToolWindow();
     void DrawLightToolWindow();
     void DrawSkyboxToolWindow();
     void DrawEffectToolWindow();
     void ShowEditorWindow();
+    void ShowExportWindow();
+private:
+    void CreateFBO(int width, int height);
+    void CreateMSAAFBO(int width, int height);
+    void SaveImage(const char* path, int ex_width, int ex_height);
     //OpenGL DrawCallback
+    void DrawGridLine(Mesh& mesh);
     void draw_callback(GLFWwindow* window);
 public:
     GLFWwindow* getWindow() { return this->window; }
@@ -141,6 +146,7 @@ int RenderApp::Init()
     pickingTexture->Init(SCR_WIDTH, SCR_HEIGHT);
     //Init custom framebuffer
     CreateFBO(SCR_WIDTH,SCR_HEIGHT);
+    CreateMSAAFBO(SCR_WIDTH, SCR_HEIGHT);
 }
 
 int RenderApp::Run() {
@@ -150,9 +156,11 @@ int RenderApp::Run() {
     items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
     items.push_back(new RenderItem());
     Mesh mesh;
-    auto generator = new GeometryGenerator();
-    mesh.GetDataFrom(generator->CreateSphere(1, 16, 16));
+    mesh.GetDataFrom(generator->CreateSphere(2, 32, 32));
     items[1]->setModel(&mesh);
+    //GridLineData
+    gridMesh.GetDataFrom(generator->CreateGridLine(24, 24, 12, 12));
+    gridMesh.material.m_shader = new Shader("Shaders/gridline.vert", "Shaders/gridline.frag");
     //skybox shader,VAO,VBO
     shaderManager->skybox_shader.use();
     shaderManager->skybox_shader.setInt("skybox", 0);
@@ -275,10 +283,15 @@ void RenderApp::DrawUI(ImGuiIO& io)
         DrawEffectToolWindow();
     }
 
-    //if (windowFlags->shader_window_open) 
-    //{
-    //    ShowEditorWindow();
-    //}
+    if (windowFlags->shader_window_open) 
+    {
+        ShowEditorWindow();
+    }
+
+    if (windowFlags->should_export_open)
+    {
+        ShowExportWindow();
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -291,84 +304,232 @@ void RenderApp::DrawUI(ImGuiIO& io)
     }
 }
 
-//void RenderApp::ShowEditorWindow()
-//{
-//    ImGui::Begin("TextEditor", &windowFlags->shader_window_open, ImGuiWindowFlags_MenuBar);
-//    if (ImGui::BeginMenuBar()) {
-//        if (ImGui::BeginMenu("File")) {
-//            if (ImGui::MenuItem("Save", "Ctrl-S")) {
-//                if (windowFlags->shader_flag == VERTEX)
-//                {
-//                    auto textToSave = editor.GetText();
-//                    if (cur_item)
-//                    {
-//                        cur_item->getShader().vertexCode = { textToSave };
-//                        cur_item->getShader().ReCompile();
-//                        cur_item->getShader().use();
-//                        cur_item->getShader().setFloat("material.shininess", 32.f);
-//                        cur_item->getShader().setDirLight(*(lightManager->dirLight));
-//                        cur_item->getShader().setPointLight(*(lightManager->pointLight));
-//                    }
-//
-//                }
-//                else if (windowFlags->shader_flag == FRAGMENT)
-//                {
-//                    auto textToSave = editor.GetText();
-//                    if (cur_item)
-//                    {
-//                        cur_item->getShader().fragmentCode = { textToSave };
-//                        cur_item->getShader().ReCompile();
-//                        cur_item->getShader().use();
-//                        cur_item->getShader().setFloat("material.shininess", 32.f);
-//                        cur_item->getShader().setDirLight(*(lightManager->dirLight));
-//                        cur_item->getShader().setPointLight(*(lightManager->pointLight));
-//                    }
-//                }
-//            }
-//            if (ImGui::MenuItem("Quit", "Alt-F4"))
-//                ;
-//            ImGui::EndMenu();
-//        }
-//        if (ImGui::BeginMenu("Edit")) {
-//            if (ImGui::MenuItem("Undo", "Ctrl-Z", nullptr, editor.CanUndo()))
-//                editor.Undo();
-//            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, editor.CanRedo()))
-//                editor.Redo();
-//
-//            ImGui::Separator();
-//
-//            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, editor.HasSelection()))
-//                editor.Copy();
-//            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, editor.HasSelection()))
-//                editor.Cut();
-//            if (ImGui::MenuItem("Delete", "Del", nullptr, editor.HasSelection()))
-//                editor.Delete();
-//            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, ImGui::GetClipboardText() != nullptr))
-//                editor.Paste();
-//
-//            ImGui::Separator();
-//
-//            if (ImGui::MenuItem("Select all", nullptr, nullptr))
-//                editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(editor.GetTotalLines(), 0));
-//
-//            ImGui::EndMenu();
-//        }
-//
-//        if (ImGui::BeginMenu("View")) {
-//            if (ImGui::MenuItem("Dark palette"))
-//                editor.SetPalette(TextEditor::GetDarkPalette());
-//            if (ImGui::MenuItem("Light palette"))
-//                editor.SetPalette(TextEditor::GetLightPalette());
-//            if (ImGui::MenuItem("Retro blue palette"))
-//                editor.SetPalette(TextEditor::GetRetroBluePalette());
-//            ImGui::EndMenu();
-//        }
-//        ImGui::EndMenuBar();
-//    }
-//
-//    editor.Render("TextEditor");
-//    ImGui::End();
-//}
+inline void RenderApp::CreateFBO(int width, int height)
+{
+    //off-screen framebuffer
+    glGenFramebuffers(1, &m_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    //create a color attachment texture 
+    glGenTextures(1, &m_texture);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+    //create a renderbuffer object for depth and stencil attachment
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    //now that we actually create the freambuffer and added all attachements we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //ScreenTexture
+    glGenFramebuffers(1, &screenFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
+    //create a color attachment texture 
+    glGenTextures(1, &screenTexture);
+    glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);
+    //create a renderbuffer object for depth and stencil attachment
+    unsigned int screen_rbo;
+    glGenRenderbuffers(1, &screen_rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, screen_rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, screen_rbo);
+    //now that we actually create the freambuffer and added all attachements we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+inline void RenderApp::CreateMSAAFBO(int width, int height)
+{
+    glGenFramebuffers(1, &m_fbo_msaa);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+    // create a multisampled color attachment texture
+    glGenTextures(1, &m_texture_msaa);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_texture_msaa);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, width, height, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_texture_msaa, 0);
+    // create a (also multisampled) renderbuffer object for depth and stencil attachments
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::MSAA_FRAMEBUFFER:: MSAA_Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+inline void RenderApp::DrawGridLine(Mesh& mesh)
+{
+    mesh.material.m_shader->use();
+    glm::mat4 model = glm::mat4(1.0f);
+    mesh.material.m_shader->setMVP(model, 
+        cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+    glBindVertexArray(mesh.get_VAO());
+    /*GL_POINTS、GL_LINE_STRIP、GL_LINE_LOOP、GL_LINES、GL_TRIANGLE_STRIP、GL_TRIANGLE_FAN、GL_TRIANGLES、GL_QUAD_STRIP、GL_QUADS和GL_POLYGON。*/
+    glDrawElements(GL_LINES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+inline void RenderApp::draw_callback(GLFWwindow* window)
+{
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    //向shader传送所有的需要的uniform变量资源
+    glm::mat4 projection = cur_camera->getProjectionMatrix();
+    glm::mat4 view = cur_camera->getViewMatrix();
+
+    //bind to picking texture and store index information
+    pickingTexture->EnableWriting();
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT |GL_DEPTH_BUFFER_BIT);
+    for (size_t i = 0; i < items.size(); i++)
+    {
+        //第i个模型未被禁用
+        if (!items[i]->isDisabled())  
+            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
+            {
+                Material& material = items[i]->getModel().getMeshes()[j].material;
+                material.setShader(&shaderManager->picking_shader);
+                material.m_shader->use();
+                material.m_shader->setMVP(items[i]->transform.getModelMat(),
+                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+                material.m_shader->setUint("ModelIndex", i);
+                material.m_shader->setUint("MeshSize", 
+                    items[i]->getModel().getMeshes().size());
+                items[i]->getModel().getMeshes()[j].Draw_PickingEffects(j);
+
+            }     
+    }
+    pickingTexture->DisableWriting();
+    // bind to custom framebuffer and draw scene as we normally would to color texture 
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    DrawGridLine(gridMesh);
+    //Draw Object
+    for (unsigned int i = 0; i < items.size(); i++) 
+    {
+        if (!items[i]->isDisabled()) 
+            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
+            {
+                Material& material = items[i]->getModel().getMeshes()[j].material;
+                material.setShader(&shaderManager->default_shader);
+                material.m_shader->use();
+                material.m_shader->setMVP(items[i]->transform.getModelMat(),
+                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+                material.m_shader->setDirLight(*(lightManager->dirLight));
+                material.m_shader->setPointLight(*(lightManager->pointLight));
+                material.m_shader->setVec3("viewPos", cur_camera->Position);
+                items[i]->getModel().getMeshes()[j].Draw();
+            }     
+    }
+    //// 2. now blit multisampled buffer(s) to normal colorbuffer of intermediate FBO. Image is stored in screenTexture
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_msaa);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+    //glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glDisable(GL_CULL_FACE);
+
+
+    //Skybox 
+    if (windowFlags->isSkyboxOn)
+    {
+        // change depth function so depth test passes when values are equal to depth buffer's content
+        glDepthFunc(GL_LEQUAL);
+        shaderManager->skybox_shader.use();
+        //remove translation from view matrix
+        view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
+        shaderManager->skybox_shader.setMat4("view", view);
+        shaderManager->skybox_shader.setMat4("projection", projection);
+        //skybox cube
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //Post-Processing
+    if (windowFlags->isEffectOn)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        shaderManager->cur_effect_shader->use();
+        glBindVertexArray(screenVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+}
+
+inline void RenderApp::SaveImage(const char* path, int ex_width = 1920, int ex_height = 1080) 
+{
+    //申请颜色数据内存
+    unsigned char* readColorBuffer = new unsigned char[SCR_WIDTH * SCR_HEIGHT * 3];
+    //读取显存中的像素（注意这里的格式是 BGR）
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, readColorBuffer);
+    //更改内存中的图像大小
+    stbir_resize(readColorBuffer, SCR_WIDTH, SCR_HEIGHT, 0, readColorBuffer, ex_width, ex_height, 
+        0, STBIR_TYPE_UINT8, 3, STBIR_ALPHA_CHANNEL_NONE, 0,
+        STBIR_EDGE_CLAMP, STBIR_EDGE_CLAMP,
+        STBIR_FILTER_BOX, STBIR_FILTER_BOX,
+        STBIR_COLORSPACE_SRGB, nullptr);
+    //将数据写入文件
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png(path, ex_width, ex_height, 3, (void*)readColorBuffer, 0);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //清理颜色数据内存
+    delete[] readColorBuffer;
+
+}
+
+RenderApp::RenderApp()
+{
+    windowFlags = new WindowFlags();
+    resources = new WindowResources();
+    pickingTexture = new PickingTexture();
+    leftMouse = new LeftMouse();
+
+    if (!RenderApp::Init()) {
+        std::cout << "Init Failure!" << std::endl;
+    }
+
+    lightManager = new LightManager();
+    shaderManager = new ShaderManager();
+    generator = new GeometryGenerator();
+
+    cur_camera = new Camera();
+    empty_item = new RenderItem();
+}
+
+RenderApp::~RenderApp()
+{
+}
 
 void RenderApp::ProcessInput(GLFWwindow* window)
 {
@@ -390,12 +551,90 @@ void RenderApp::ProcessInput(GLFWwindow* window)
         hiddenMosue = !hiddenMosue;
 }
 
+void RenderApp::ShowEditorWindow()
+{
+    ImGui::Begin("TextEditor", &windowFlags->shader_window_open, ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Save", "Ctrl-S")) {
+                if (windowFlags->shader_flag == VERTEX)
+                {
+                    auto textToSave = editor.GetText();
+                    if (cur_item)
+                    {
+                        windowFlags->cur_shader->vertexCode = { textToSave };
+                        windowFlags->cur_shader->ReCompile();
+                        windowFlags->cur_shader->use();
+                        windowFlags->cur_shader->setFloat("material.shininess", 32.f);
+                        windowFlags->cur_shader->setDirLight(*(lightManager->dirLight));
+                        windowFlags->cur_shader->setPointLight(*(lightManager->pointLight));
+                    }
+
+                }
+                else if (windowFlags->shader_flag == FRAGMENT)
+                {
+                    auto textToSave = editor.GetText();
+                    if (cur_item)
+                    {
+                        windowFlags->cur_shader->fragmentCode = { textToSave };
+                        windowFlags->cur_shader->ReCompile();
+                        windowFlags->cur_shader->use();
+                        windowFlags->cur_shader->setFloat("material.shininess", 32.f);
+                        windowFlags->cur_shader->setDirLight(*(lightManager->dirLight));
+                        windowFlags->cur_shader->setPointLight(*(lightManager->pointLight));
+                    }
+                }
+            }
+            if (ImGui::MenuItem("Quit", "Alt-F4"))
+                ;
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Edit")) {
+            if (ImGui::MenuItem("Undo", "Ctrl-Z", nullptr, editor.CanUndo()))
+                editor.Undo();
+            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, editor.CanRedo()))
+                editor.Redo();
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, editor.HasSelection()))
+                editor.Copy();
+            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, editor.HasSelection()))
+                editor.Cut();
+            if (ImGui::MenuItem("Delete", "Del", nullptr, editor.HasSelection()))
+                editor.Delete();
+            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, ImGui::GetClipboardText() != nullptr))
+                editor.Paste();
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Select all", nullptr, nullptr))
+                editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(editor.GetTotalLines(), 0));
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem("Dark palette"))
+                editor.SetPalette(TextEditor::GetDarkPalette());
+            if (ImGui::MenuItem("Light palette"))
+                editor.SetPalette(TextEditor::GetLightPalette());
+            if (ImGui::MenuItem("Retro blue palette"))
+                editor.SetPalette(TextEditor::GetRetroBluePalette());
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+    editor.Render("TextEditor");
+    ImGui::End();
+}
+
 void RenderApp::SetGUI() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext(NULL);
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
-    io.Fonts->AddFontFromFileTTF("Resources/Fonts/kaiu.ttf", 24, NULL, io.Fonts->GetGlyphRangesChineseFull());
+    io.Fonts->AddFontFromFileTTF("Resources/Fonts/kai.ttf", 24, NULL, io.Fonts->GetGlyphRangesChineseFull());
 
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiViewportFlags_NoDecoration;
@@ -485,27 +724,27 @@ void RenderApp::SetViewport() {
         ImGui::GetWindowDrawList()->AddImage((void*)screenTexture, ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
     }
     else
-        ImGui::GetWindowDrawList()->AddImage((void*)m_texture, 
+        ImGui::GetWindowDrawList()->AddImage((void*)m_texture,
             ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
     //ImGui::GetWindowDrawList()->AddImage(
     //   (void*)pickingTexture->getPickingTexture(), ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
 
-    if (cur_item) 
+    if (cur_item)
     {
         //Draw 3D Gizmo
-        ImGuizmo::Manipulate(camera_view, camera_projection, mCurrentGizmoOperation, mCurrentGizmoMode, 
+        ImGuizmo::Manipulate(camera_view, camera_projection, mCurrentGizmoOperation, mCurrentGizmoMode,
             (float*)glm::value_ptr(cur_item->transform.getModelMat()), NULL, NULL, NULL, NULL);
         //Draw Manipulate View(3D Cube)
-        ImGuizmo::ViewManipulate(camera_view, camDistance, 
+        ImGuizmo::ViewManipulate(camera_view, camDistance,
             ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
-    }  
+    }
     ImGui::End();
     style.WindowPadding = ImVec2(6, 6);
 
     if (leftMouse->isPressed)
     {
         double scale_x = SCR_WIDTH / windowWidth;
-        double scale_y = SCR_HEIGHT / windowHeight; 
+        double scale_y = SCR_HEIGHT / windowHeight;
 
         double read_x, read_y;
         read_x = ImGui::GetMousePos().x - windowPosX;
@@ -516,7 +755,6 @@ void RenderApp::SetViewport() {
         PickingTexture::PixelInfo Pixel = pickingTexture->ReadPixel(read_x, SCR_HEIGHT - read_y - 1);
         if (Pixel.PrimID != 0 && items.size())
             cur_item = items[Pixel.ObjectID];
-
     }
 
 }
@@ -766,6 +1004,7 @@ void RenderApp::DrawObjectWindow() {
                     {
                         windowFlags->shader_window_open = true;
                         windowFlags->shader_flag = FRAGMENT;
+                        windowFlags->cur_shader = material.m_shader;
                         editor.SetText(material.m_shader->fragmentCode);
                     }
                     //Material Texture-Mapping
@@ -808,6 +1047,7 @@ void RenderApp::DrawObjectWindow() {
                                     }; break;
                                     case 1:
                                     {
+                                        bool k = false;
                                         if (material.specularMapping == false)
                                         {
                                             Texture tex;
@@ -818,11 +1058,15 @@ void RenderApp::DrawObjectWindow() {
                                             {
                                                 if (textures[j].type == "texture_diffuse")
                                                 {
-                                                    textures.insert(textures.begin() + j, tex);
+                                                    textures.insert(textures.begin() + j + 1, tex);
+                                                    k = true;
                                                     break;
                                                 }
                                             }
-                                            textures.insert(textures.begin(), std::move(tex));
+                                            if (k)
+                                                break;
+                                            else
+                                                textures.insert(textures.begin(), std::move(tex));
                                         }
                                         else
                                         {
@@ -842,6 +1086,7 @@ void RenderApp::DrawObjectWindow() {
                                     }; break;
                                     case 2:
                                     {
+                                        bool k = false;
                                         if (material.normalMapping == false)
                                         {
                                             Texture tex;
@@ -852,11 +1097,27 @@ void RenderApp::DrawObjectWindow() {
                                             {
                                                 if (textures[j].type == "texture_specular")
                                                 {
-                                                    textures.insert(textures.begin() + j, tex);
+                                                    textures.insert(textures.begin() + j + 1, tex);
+                                                    k = true;
                                                     break;
                                                 }
                                             }
-                                            textures.insert(textures.begin(), std::move(tex));
+                                            if (k)
+                                                break;
+                                            else
+                                                for (size_t j = 0; j < textures.size(); j++)
+                                                {
+                                                    if (textures[j].type == "texture_diffuse")
+                                                    {
+                                                        textures.insert(textures.begin() + j + 1, tex);
+                                                        k = true;
+                                                        break;
+                                                    }
+                                                }
+                                            if (k)
+                                                break;
+                                            else
+                                                textures.insert(textures.begin(), std::move(tex));
                                         }
                                         else
                                         {
@@ -876,7 +1137,6 @@ void RenderApp::DrawObjectWindow() {
                                     }; break;
                                     default:break;
                                     }
-
                                 }
                             }
                             ifd::FileDialog::Instance().Close();
@@ -992,12 +1252,9 @@ void RenderApp::DrawMainMenuWindow()
             // Here we demonstrate appending again to the "Options" menu (which we already created above)
             // Of course in this demo it is a little bit silly that this function calls BeginMenu("Options") twice.
             // In a real code-base using it would make senses to use this feature from very different code locations.
-            if (ImGui::BeginMenu("Options")) // <-- Append!
-            {
-                static bool b = true;
-                ImGui::Checkbox("SomeOption", &b);
-                ImGui::EndMenu();
-            }
+            if (ImGui::MenuItem("Export PNG")) // <-- Append!
+                windowFlags->should_export_open = true;
+
             if (ImGui::MenuItem("Load Model"))
             {
                 ifd::FileDialog::Instance().Open("ModelFileDialog", "Open A Model Image",
@@ -1010,7 +1267,7 @@ void RenderApp::DrawMainMenuWindow()
             }
             if (ImGui::MenuItem("Checked", NULL, true)) {}
             ImGui::Separator();
-            if (ImGui::MenuItem("Quit", "Alt+F4")) 
+            if (ImGui::MenuItem("Quit", "Alt+F4"))
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
 
             ImGui::EndMenu();
@@ -1038,7 +1295,18 @@ void RenderApp::DrawMainMenuWindow()
             }
             ifd::FileDialog::Instance().Close();
         }
-    }     
+        if (ifd::FileDialog::Instance().IsDone("SaveImageFileDialog")) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                //old pic will be replaced with new pic
+                if (res.size() == 1)
+                {
+                    SaveImage(res[0].u8string().c_str(), windowFlags->export_w, windowFlags->export_h);
+                }
+            }
+            ifd::FileDialog::Instance().Close();
+        }
+    }
 }
 
 void RenderApp::DrawToolWindow()
@@ -1069,7 +1337,7 @@ void RenderApp::DrawToolWindow()
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, cell_bg_color);
             }
             //if clicked, change gizmoOperation
-            if (ImGui::IsItemClicked()) 
+            if (ImGui::IsItemClicked())
                 mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
         }
         //fill the gap between moveIcon and rotateIcon
@@ -1104,7 +1372,7 @@ void RenderApp::DrawToolWindow()
                 ImGui::SetTooltip("Scale");
             }
             if (ImGui::IsItemClicked())
-                mCurrentGizmoOperation = ImGuizmo::SCALE;   
+                mCurrentGizmoOperation = ImGuizmo::SCALE;
         }
 
         ImGui::EndTable();
@@ -1214,7 +1482,7 @@ void RenderApp::DrawToolWindow()
 inline void RenderApp::DrawCameraToolWindow()
 {
 
-    if (ImGui::Begin("Camera",&windowFlags->camera_window_open))
+    if (ImGui::Begin("Camera", &windowFlags->camera_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
         ImGui::Dummy(fill_size);
@@ -1242,11 +1510,11 @@ inline void RenderApp::DrawLightToolWindow()
         ImGui::SameLine();
         ImGui::Text("Light On/Off");
         ImGui::SameLine();
-        ImGui::ToggleButton("toggle",&windowFlags->isLightOn);
+        ImGui::ToggleButton("toggle", &windowFlags->isLightOn);
         //Light Setting
         if (windowFlags->isLightOn)
         {
-            if (ImGui::CollapsingHeader("DirLight Atrribute")) 
+            if (ImGui::CollapsingHeader("DirLight Atrribute"))
             {
                 ImGui::Dummy(fill_size);
                 ImGui::SameLine();
@@ -1257,7 +1525,7 @@ inline void RenderApp::DrawLightToolWindow()
                 if (windowFlags->isLightCastersOn[0])
                 {
                     ImGui::InputFloat3("DirLight Direction", glm::value_ptr(lightManager->dirLight->direction), "%.1f");
-                    ImGui::ColorEdit3("DirLight Ambient",glm::value_ptr(lightManager->dirLight->ambient));
+                    ImGui::ColorEdit3("DirLight Ambient", glm::value_ptr(lightManager->dirLight->ambient));
                     ImGui::ColorEdit3("DirLight Diffuse", glm::value_ptr(lightManager->dirLight->diffuse));
                     ImGui::ColorEdit3("DirLight Specular", glm::value_ptr(lightManager->dirLight->specular));
                     //Change the uniform value in default_shader
@@ -1433,7 +1701,7 @@ inline void RenderApp::DrawEffectToolWindow()
             ImGui::NewLine();
             //Screen Effecs
             ImGui::Text(u8"屏幕后期特效");
-            const char* effect_items[] = { "Inversion","Grayscale","Sharpen","Blur","Edge-Detection"};
+            const char* effect_items[] = { "Inversion","Grayscale","Sharpen","Blur","Edge-Detection" };
             static const char* current_item = effect_items[0];
             static int current_index = 0;
             if (ImGui::BeginCombo("##effect_combo", current_item))
@@ -1467,162 +1735,45 @@ inline void RenderApp::DrawEffectToolWindow()
     }
 }
 
-inline void RenderApp::CreateFBO(int width, int height)
+inline void RenderApp::ShowExportWindow()
 {
-    //SceneTexture
-    glGenFramebuffers(1, &m_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    //create a color attachment texture 
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
-    //create a renderbuffer object for depth and stencil attachment
-    unsigned int rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-    //now that we actually create the freambuffer and added all attachements we want to check if it is actually complete now
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //ScreenTexture
-    glGenFramebuffers(1, &screenFbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
-    //create a color attachment texture 
-    glGenTextures(1, &screenTexture);
-    glBindTexture(GL_TEXTURE_2D, screenTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenTexture, 0);
-    //create a renderbuffer object for depth and stencil attachment
-    unsigned int screen_rbo;
-    glGenRenderbuffers(1, &screen_rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, screen_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, screen_rbo);
-    //now that we actually create the freambuffer and added all attachements we want to check if it is actually complete now
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is no complete!" << std::endl;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-inline void RenderApp::draw_callback(GLFWwindow* window)
-{
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    //向shader传送所有的需要的uniform变量资源
-    glm::mat4 projection = cur_camera->getProjectionMatrix();
-    glm::mat4 view = cur_camera->getViewMatrix();
-
-    //bind to picking texture and store index information
-    pickingTexture->EnableWriting();
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(0.f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT |GL_DEPTH_BUFFER_BIT);
-    for (size_t i = 0; i < items.size(); i++)
+    if (ImGui::Begin("Effect", &windowFlags->should_export_open))
     {
-        //第i个模型未被禁用
-        if (!items[i]->isDisabled())  
-            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
-            {
-                Material& material = items[i]->getModel().getMeshes()[j].material;
-                material.setShader(&shaderManager->picking_shader);
-                material.m_shader->use();
-                material.m_shader->setMVP(items[i]->transform.getModelMat(),
-                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
-                material.m_shader->setUint("ModelIndex", i);
-                material.m_shader->setUint("MeshSize", 
-                    items[i]->getModel().getMeshes().size());
-                items[i]->getModel().getMeshes()[j].Draw_PickingEffects(j);
-
-            }     
+        ImVec2 fill_size = ImVec2(24, 24);
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        ImGui::Text(u8"导出渲染结果");
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(200.f);
+        ImGui::InputInt("ExportWidth",&windowFlags->export_w);
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(200.f);
+        ImGui::InputInt("ExportHeight", &windowFlags->export_h);
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        if (ImGui::Button(u8"导出PNG"))
+        {
+            if (windowFlags->export_w && windowFlags->export_h)
+                ifd::FileDialog::Instance().Save("SaveImageFileDialog", "Export Image",
+                    "Image file (*.png){.png}");
+            else
+                ImGui::OpenPopup("Input Error");
+        }       
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        if (ImGui::BeginPopupModal("Input Error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text(u8"请确保导出图片尺寸不为0");
+            ImGui::Separator();
+            ImGui::Dummy(ImVec2(40,0));
+            ImGui::SameLine();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::SetItemDefaultFocus();
+            ImGui::EndPopup();
+        }
+        ImGui::End();
     }
-    pickingTexture->DisableWriting();
-    // bind to custom framebuffer and draw scene as we normally would to color texture 
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    //Draw Object
-    for (unsigned int i = 0; i < items.size(); i++) 
-    {
-        if (!items[i]->isDisabled()) 
-            for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
-            {
-                Material& material = items[i]->getModel().getMeshes()[j].material;
-                material.setShader(&shaderManager->default_shader);
-                material.m_shader->use();
-                material.m_shader->setMVP(items[i]->transform.getModelMat(),
-                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
-                material.m_shader->setDirLight(*(lightManager->dirLight));
-                material.m_shader->setPointLight(*(lightManager->pointLight));
-                material.m_shader->setVec3("viewPos", cur_camera->Position);
-                items[i]->getModel().getMeshes()[j].Draw();
-            }     
-    }
-    glDisable(GL_CULL_FACE);
-    //Skybox 
-    if (windowFlags->isSkyboxOn)
-    {
-        // change depth function so depth test passes when values are equal to depth buffer's content
-        glDepthFunc(GL_LEQUAL);
-        shaderManager->skybox_shader.use();
-        //remove translation from view matrix
-        view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
-        shaderManager->skybox_shader.setMat4("view", view);
-        shaderManager->skybox_shader.setMat4("projection", projection);
-        //skybox cube
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //Post-Processing
-    if (windowFlags->isEffectOn)
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, screenFbo);
-        glDisable(GL_DEPTH_TEST);
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        shaderManager->cur_effect_shader->use();
-        glBindVertexArray(screenVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-}
-
-RenderApp::RenderApp()
-{
-    windowFlags = new WindowFlags();
-    resources = new WindowResources();
-    pickingTexture = new PickingTexture();
-    leftMouse = new LeftMouse();
-
-    if (!RenderApp::Init()) {
-        std::cout << "Init Failure!" << std::endl;
-    }
-
-    lightManager = new LightManager();
-    shaderManager = new ShaderManager();
-
-    cur_camera = new Camera();
-    empty_item = new RenderItem();
-}
-
-RenderApp::~RenderApp()
-{
 }

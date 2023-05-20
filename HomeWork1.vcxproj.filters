@@ -43,6 +43,9 @@
     <Filter Include="资源文件\Shaders\Effects\PostProcessing">
       <UniqueIdentifier>{e77a7aad-9793-4cdd-8f78-5e72e3b1cc96}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\stb_image">
+      <UniqueIdentifier>{6d6328cb-2c77-4250-b20f-a9d139310b4b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -107,25 +110,16 @@
     <ClInclude Include="Classes\Shader.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Classes\stb_image.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Classes\RenderApp.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Classes\Lighting_Test.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Classes\Mesh.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Model.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Classes\STBI.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Classes\Picking.h">
@@ -176,6 +170,18 @@
     <ClInclude Include="imgui\TextEditor.h">
       <Filter>头文件\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="Classes\stb_image.h">
+      <Filter>头文件\stb_image</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\STBI.h">
+      <Filter>头文件\stb_image</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\stb_image_write.h">
+      <Filter>头文件\stb_image</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\stb_image_resize.h">
+      <Filter>头文件\stb_image</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\basic_trans.frag">
@@ -188,18 +194,6 @@
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\container.vert">
-      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
-    </None>
-    <None Include="Shaders\glm.frag">
-      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
-    </None>
-    <None Include="Shaders\glm.vert">
-      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
-    </None>
-    <None Include="Shaders\triangle.frag">
-      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
-    </None>
-    <None Include="Shaders\triangle.vert">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\Basic_Light.frag">
@@ -289,6 +283,12 @@
     </None>
     <None Include="Shaders\standard.frag">
       <Filter>资源文件\Shaders\Model_testShaders</Filter>
+    </None>
+    <None Include="Shaders\gridline.vert">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\gridline.frag">
+      <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

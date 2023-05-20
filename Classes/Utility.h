@@ -4,6 +4,10 @@
 #include"../imgui/imgui_internal.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize.h"
 
 //skybox data
 float skyboxVertices[] = {
@@ -62,7 +66,8 @@ float planeVertices[] = {
 	-1.f, -1.f, 0.0f,    0.0f, 0.0f,   // ×óÏÂ
 	-1.f,  1.f, 0.0f,    0.0f, 1.0f    // ×óÉÏ
 };
-
+//grid line data
+Mesh gridMesh;
 struct LeftMouse {
 	int x;
 	int y;
@@ -73,7 +78,6 @@ struct LeftMouse {
 	}
 	~LeftMouse(){}
 };
-
 
 enum ShaderFlags
 {
@@ -110,6 +114,11 @@ struct WindowFlags
 	//Shader Editor Flags
 	bool shader_window_open = false;
 	ShaderFlags shader_flag;
+	Shader* cur_shader = NULL;
+	//Export Window
+	bool should_export_open = false;
+	int export_w = 0;
+	int export_h = 0;
 };
 
 struct WindowResources
@@ -231,6 +240,12 @@ unsigned int LoadTexture(char const* path)
 
 	return textureID;
 }
+
+struct RGB_COLOR {
+	float R;
+	float G;
+	float B;
+};
 
 void Frustum(float left, float right, float bottom, float top, float znear, float zfar, float* m16)
 {

@@ -73,6 +73,7 @@ public:
 	///</summary>
 	MeshData CreateSphere(float radius, uint32 sliceCount, uint32 stackCount);
 
+	MeshData CreateGridLine(float width, float depth, uint32 m, uint32 n);
 	///<summary>
 	/// Creates a geosphere centered at the origin with the given radius.  The
 	/// depth controls the level of tessellation.

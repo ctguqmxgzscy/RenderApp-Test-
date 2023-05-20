@@ -36,12 +36,12 @@ void Mesh::GetDataFrom(GeometryGenerator::MeshData data)
 	{
 		indices.push_back(data.Indices32[i]);
 	}
-
 	setupMesh();
 }
 
 void Mesh::Draw()
 {
+	material.m_shader->use();
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	unsigned int normalNr = 1;
@@ -72,7 +72,6 @@ void Mesh::Draw()
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 	glActiveTexture(GL_TEXTURE0);
-	material.m_shader->use();
 	material.setShaderProp();
 
 	glBindVertexArray(VAO);
