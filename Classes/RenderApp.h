@@ -103,6 +103,7 @@ public:
     Camera* getCamera() { return this->cur_camera; }
     LeftMouse* getLeftMouse() { return this->leftMouse; }
     RenderItem* getCurRenderItem() { return this->cur_item; }
+    WindowFlags* getWindowFlags() { return this->windowFlags; }
     ImVec2 viewport_pos, viewport_size;
 };
 
@@ -416,17 +417,21 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
     }
     pickingTexture->DisableWriting();
     // bind to custom framebuffer and draw scene as we normally would to color texture 
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    if (windowFlags->isMSAAOn)
+        glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+    else
+        glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    DrawGridLine(gridMesh);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (!windowFlags->shouldExport)
+        DrawGridLine(gridMesh);
     //Draw Object
-    for (unsigned int i = 0; i < items.size(); i++) 
+    for (unsigned int i = 0; i < items.size(); i++)
     {
-        if (!items[i]->isDisabled()) 
+        if (!items[i]->isDisabled())
             for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
             {
                 Material& material = items[i]->getModel().getMeshes()[j].material;
@@ -438,15 +443,9 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
                 material.m_shader->setPointLight(*(lightManager->pointLight));
                 material.m_shader->setVec3("viewPos", cur_camera->Position);
                 items[i]->getModel().getMeshes()[j].Draw();
-            }     
+            }
     }
-    //// 2. now blit multisampled buffer(s) to normal colorbuffer of intermediate FBO. Image is stored in screenTexture
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_msaa);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-    //glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glDisable(GL_CULL_FACE);
-
-
     //Skybox 
     if (windowFlags->isSkyboxOn)
     {
@@ -464,6 +463,13 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
         glDepthFunc(GL_LESS);
+    }
+    if (windowFlags->isMSAAOn)
+    {
+        //// 2. now blit multisampled buffer(s) to normal colorbuffer of intermediate FBO. Image is stored in screenTexture
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_msaa);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+        glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     //Post-Processing
@@ -533,22 +539,33 @@ RenderApp::~RenderApp()
 
 void RenderApp::ProcessInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cur_camera->ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cur_camera->ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cur_camera->ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cur_camera->ProcessKeyboard(RIGHT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        cur_camera->MovementSpeed = 4.0f;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
-        cur_camera->MovementSpeed = 2.5f;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        hiddenMosue = !hiddenMosue;
+    if (windowFlags->isViewportHover)
+    {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            cur_camera->ProcessKeyboard(FORWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            cur_camera->ProcessKeyboard(BACKWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            cur_camera->ProcessKeyboard(LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            cur_camera->ProcessKeyboard(RIGHT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            cur_camera->MovementSpeed = 4.0f;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+            cur_camera->MovementSpeed = 2.5f;
+        if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+            hiddenMosue = !hiddenMosue;
+    }
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    if (leftMouse->isPressed && state == GLFW_RELEASE)
+    {
+        leftMouse->isOnClicked = true;
+        leftMouse->isPressed = false;
+    }
+    else
+        leftMouse->isOnClicked = false;
 }
 
 void RenderApp::ShowEditorWindow()
@@ -726,8 +743,6 @@ void RenderApp::SetViewport() {
     else
         ImGui::GetWindowDrawList()->AddImage((void*)m_texture,
             ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
-    //ImGui::GetWindowDrawList()->AddImage(
-    //   (void*)pickingTexture->getPickingTexture(), ImVec2(p_max_x, p_min_y), ImVec2(p_min_x, p_max_y));
 
     if (cur_item)
     {
@@ -738,14 +753,14 @@ void RenderApp::SetViewport() {
         ImGuizmo::ViewManipulate(camera_view, camDistance,
             ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
     }
+    windowFlags->isViewportHover = ImGui::IsWindowHovered();
     ImGui::End();
     style.WindowPadding = ImVec2(6, 6);
 
-    if (leftMouse->isPressed)
+    if (leftMouse->isOnClicked)
     {
         double scale_x = SCR_WIDTH / windowWidth;
         double scale_y = SCR_HEIGHT / windowHeight;
-
         double read_x, read_y;
         read_x = ImGui::GetMousePos().x - windowPosX;
         read_y = ImGui::GetMousePos().y - windowPosY;
@@ -1025,7 +1040,7 @@ void RenderApp::DrawObjectWindow() {
                                         {
                                             Texture tex;
                                             tex.path = res[0].u8string();
-                                            tex.id = LoadTexture(tex.path.C_Str());
+                                            tex.id = LoadTexture(tex.path.C_Str(), true);
                                             tex.type = "texture_diffuse";
                                             textures.insert(textures.begin(), std::move(tex));
                                         }
@@ -1037,7 +1052,7 @@ void RenderApp::DrawObjectWindow() {
                                                 {
                                                     textures[j].path = res[0].u8string();
                                                     glDeleteTextures(1, &textures[j].id);
-                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                                    textures[j].id = LoadTexture(textures[j].path.C_Str(), true);
                                                     textures[j].type = "texture_diffuse";
                                                     break;
                                                 }
@@ -1233,7 +1248,6 @@ void RenderApp::DrawMainMenuWindow()
                 ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
                 ImGui::EndMenu();
             }
-
             if (ImGui::BeginMenu("Colors"))
             {
                 float sz = ImGui::GetTextLineHeight();
@@ -1302,6 +1316,10 @@ void RenderApp::DrawMainMenuWindow()
                 if (res.size() == 1)
                 {
                     SaveImage(res[0].u8string().c_str(), windowFlags->export_w, windowFlags->export_h);
+                    if (windowFlags->isMSAAOn)
+                        windowFlags->isMSAAOn = false;
+                    if (windowFlags->shouldExport)
+                        windowFlags->shouldExport = false;
                 }
             }
             ifd::FileDialog::Instance().Close();
@@ -1543,9 +1561,6 @@ inline void RenderApp::DrawLightToolWindow()
 
                 if (windowFlags->isLightCastersOn[1])
                 {
-                    ImGui::InputFloat("PointLight Constant", &lightManager->pointLight->constant, 0.01f, 0.01f, "%.3f");
-                    ImGui::InputFloat("PointLight Quadratic", &lightManager->pointLight->quadratic, 0.01f, 0.01f, "%.3f");
-                    ImGui::InputFloat("PointLight Linear", &lightManager->pointLight->linear, 0.01f, 0.01f, "%.3f");
                     ImGui::InputFloat3("PointLight Position", glm::value_ptr(lightManager->pointLight->position), "%.1f");
                     ImGui::ColorEdit3("PointLight Ambient", glm::value_ptr(lightManager->pointLight->ambient));
                     ImGui::ColorEdit3("PointLight Diffuse", glm::value_ptr(lightManager->pointLight->diffuse));
@@ -1565,11 +1580,8 @@ inline void RenderApp::DrawLightToolWindow()
 
                 if (windowFlags->isLightCastersOn[2])
                 {
-                    ImGui::InputFloat("SpotLight Constant", &lightManager->spotLight->constant, 0.01f, 0.01f, "%.3f");
                     ImGui::InputFloat("SpotLight InnerCutOut", &lightManager->spotLight->innerCutOut, 0.01f, 0.01f, "%.3f");
                     ImGui::InputFloat("SpotLight OutterCutOut", &lightManager->spotLight->outterCutOut, 0.01f, 0.01f, "%.3f");
-                    ImGui::InputFloat("SpotLight Quadratic", &lightManager->spotLight->quadratic, 0.01f, 0.01f, "%.3f");
-                    ImGui::InputFloat("SpotLight Linear", &lightManager->spotLight->linear, 0.01f, 0.01f, "%.3f");
 
                     ImGui::InputFloat3("SpotLight Position", glm::value_ptr(lightManager->spotLight->position), "%.1f");
                     ImGui::InputFloat3("SpotLight Direction", glm::value_ptr(lightManager->spotLight->direction), "%.1f");
@@ -1740,27 +1752,28 @@ inline void RenderApp::ShowExportWindow()
     if (ImGui::Begin("Effect", &windowFlags->should_export_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
-        ImGui::Dummy(fill_size);
-        ImGui::SameLine();
+        ImGui::Dummy(fill_size); ImGui::SameLine();
         ImGui::Text(u8"导出渲染结果");
-        ImGui::Dummy(fill_size);
-        ImGui::SameLine();
+        ImGui::Dummy(fill_size); ImGui::SameLine();
         ImGui::SetNextItemWidth(200.f);
         ImGui::InputInt("ExportWidth",&windowFlags->export_w);
-        ImGui::Dummy(fill_size);
-        ImGui::SameLine();
+        ImGui::Dummy(fill_size); ImGui::SameLine();
         ImGui::SetNextItemWidth(200.f);
         ImGui::InputInt("ExportHeight", &windowFlags->export_h);
-        ImGui::Dummy(fill_size);
-        ImGui::SameLine();
+        ImGui::Dummy(fill_size);ImGui::SameLine();
+        ImGui::Checkbox(u8"MSAA 超级采样", &windowFlags->isMSAAOn);
+        ImGui::Dummy(fill_size); ImGui::SameLine();
         if (ImGui::Button(u8"导出PNG"))
         {
             if (windowFlags->export_w && windowFlags->export_h)
+            {
                 ifd::FileDialog::Instance().Save("SaveImageFileDialog", "Export Image",
                     "Image file (*.png){.png}");
+                windowFlags->shouldExport = true;
+            }
             else
                 ImGui::OpenPopup("Input Error");
-        }       
+        }
         // Always center this window when appearing
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));

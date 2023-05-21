@@ -30,10 +30,6 @@ struct PointLight
 {
 	glm::vec3 position;
 
-	float constant;
-	float linear;
-	float quadratic;
-
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
 	glm::vec3 specular;
@@ -44,9 +40,6 @@ struct PointLight
 		ambient = glm::vec3(0.05f, 0.05f, 0.05f);
 		diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
 		specular = glm::vec3(1.0f, 1.0f, 1.0f);
-		constant = 1.0f;
-		linear = 0.09f;
-		quadratic = 0.032f;
 	}
 };
 //¾Û¹âµÆ
@@ -54,10 +47,6 @@ struct SpotLight
 {
 	float innerCutOut;
 	float outterCutOut;
-
-	float constant;
-	float linear;
-	float quadratic;
 
 	glm::vec3 position;
 	glm::vec3 direction;
@@ -74,9 +63,6 @@ struct SpotLight
 		diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
 		specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
-		constant = 10.0f;
-		linear = 0.09f;
-		quadratic = 0.032f;
 		innerCutOut = glm::cos(glm::radians(12.5f));
 		outterCutOut = glm::cos(glm::radians(15.0f));
 	}

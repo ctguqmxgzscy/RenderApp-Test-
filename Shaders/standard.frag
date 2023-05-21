@@ -11,10 +11,6 @@ struct DirLight{
 struct PointLight{
     vec3 position;
 
-    float constant;
-    float linear;
-    float quadratic;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -22,10 +18,6 @@ struct PointLight{
 struct SpotLight{
     float innerCutOut;
     float outterCutOut;
-
-    float constant;
-    float linear;
-    float quadratic;
 
     vec3 position;
     vec3 direction;
@@ -85,7 +77,8 @@ void main()
     //Calculate Light 
     vec3 result = CalcDirLight(fs_in.dirLight, normal, viewDir) + 
         CalcPointLight(fs_in.pointLight, normal, fs_in.TangentFragPos, viewDir);
-
+    //Gamma Correction
+    result = pow(result.rgb,vec3(1.0/2.2));
     FragColor = vec4(result,1.0f);
 } 
 
@@ -129,8 +122,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     float spec = pow(max(dot(temp,normal),0.0),material.shininess);
     //attenuation
     float dis = length(light.position-fragPos);
-    float attenuation = 1.0/(light.constant + light.linear * dis +
-                        light.quadratic * (dis * dis));
+    float attenuation = 1.0/(dis * dis);
 
     vec3 ambient, diffuse, specular;
     //Ambient and diffuse
@@ -167,7 +159,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos,vec3 viewDir){
     float intensity = clamp((theta-light.outterCutOut)/epsilon,0.0f,1.0f);
     //attenuation
     float dis = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * dis + light.quadratic * (dis * dis)); 
+    float attenuation = 1.0 /(dis * dis);
 
     vec3 ambient, diffuse, specular;
     //Ambient and diffuse

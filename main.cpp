@@ -49,17 +49,24 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    app->getCamera()->ProcessMouseScroll(yoffset);
+    if(app->getWindowFlags()->isViewportHover)
+        app->getCamera()->ProcessMouseScroll(yoffset);
 }
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    auto mouse = app->getLeftMouse();
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
-        app->getLeftMouse()->isPressed = true;
+        mouse->isPressed = true;
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
-        app->getLeftMouse()->x = xpos;
-        app->getLeftMouse()->y = ypos;
+        mouse->x = xpos;
+        mouse->y = ypos;
     }
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+        mouse->isOnClicked = true;
     else
-        app->getLeftMouse()->isPressed = false;
+    {
+        mouse->isOnClicked = false;
+        mouse->isPressed = false;
+    }
 }

@@ -72,9 +72,11 @@ struct LeftMouse {
 	int x;
 	int y;
 	bool isPressed;
+	bool isOnClicked;
 	LeftMouse()
 	{
 		isPressed = false;
+		isOnClicked = false;
 	}
 	~LeftMouse(){}
 };
@@ -96,7 +98,9 @@ enum EffectFlags
 
 struct WindowFlags
 {
-	//Other Windows' Flag
+	//ViewportWindow
+	bool isViewportHover = false;
+	//-----Other Windows' Flag
 	//Camera Window Flags
 	bool camera_window_open = false;
 	bool shouldLookAtCurItem = false;
@@ -113,12 +117,14 @@ struct WindowFlags
 	EffectFlags effectFlags;
 	//Shader Editor Flags
 	bool shader_window_open = false;
+	bool shouldExport = false;
 	ShaderFlags shader_flag;
 	Shader* cur_shader = NULL;
 	//Export Window
 	bool should_export_open = false;
 	int export_w = 0;
 	int export_h = 0;
+	bool isMSAAOn = false;
 };
 
 struct WindowResources
@@ -173,6 +179,7 @@ std::string material_dialogs[3] =
 // +Z (front) 
 // -Z (back)
 // -------------------------------------------------------
+
 unsigned int loadCubemap(std::vector<std::string> faces) {
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
@@ -230,6 +237,52 @@ unsigned int LoadTexture(char const* path)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		//绑定完毕后释放data，减少内存占用
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture failed to load at path: " << path << std::endl;
+		stbi_image_free(data);
+	}
+
+	return textureID;
+}
+
+unsigned int LoadTexture(char const* path, bool gammaCorrection)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+
+	int width, height, nrComponents;
+	unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+	if (data)
+	{
+		GLenum internalFormat;
+		GLenum dataFormat;
+		if (nrComponents == 1)
+		{
+			internalFormat = dataFormat = GL_RED;
+		}
+		else if (nrComponents == 3)
+		{
+			internalFormat = gammaCorrection ? GL_SRGB : GL_RGB;
+			dataFormat = GL_RGB;
+		}
+		else if (nrComponents == 4)
+		{
+			internalFormat = gammaCorrection ? GL_SRGB_ALPHA : GL_RGBA;
+			dataFormat = GL_RGBA;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		stbi_image_free(data);
 	}
 	else

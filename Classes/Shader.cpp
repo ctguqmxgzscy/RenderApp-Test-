@@ -258,15 +258,10 @@ void Shader::setDirLight(const DirectionalLight& light) const
 
 void Shader::setPointLight(const PointLight& light) const
 {
-
 	this->setVec3("pointLight.position", light.position);
 	this->setVec3("pointLight.ambient", light.ambient);
 	this->setVec3("pointLight.diffuse", light.diffuse);
 	this->setVec3("pointLight.specular", light.specular);
-
-	this->setFloat("pointLight.constant", light.constant);
-	this->setFloat("pointLight.linear", light.linear);
-	this->setFloat("pointLight.quadratic", light.quadratic);
 
 }
 
@@ -279,11 +274,8 @@ void Shader::setSpotLight(const SpotLight& light) const
 	this->setVec3("spotLight.diffuse", light.diffuse);
 	this->setVec3("spotLight.specular", light.specular);
 
-	this->setFloat("spotLight.constant", light.constant);
 	this->setFloat("spotLight.innerCutOut", light.innerCutOut);
 	this->setFloat("spotLight.outterCutOut", light.outterCutOut);
-	this->setFloat("spotLight.quadratic", light.quadratic);
-	this->setFloat("spotLight.linear", light.linear);
 }
 
 void Shader::setMVP(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection) const
