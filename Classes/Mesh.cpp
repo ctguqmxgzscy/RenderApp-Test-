@@ -9,16 +9,71 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	setupMesh();
 }
 
-//Mesh::~Mesh()
-//{
-//	glDeleteVertexArrays(1, &VAO);
-//	glDeleteBuffers(1, &EBO);
-//	glDeleteBuffers(1, &VBO);
-//
-//	vertices.clear();
-//	textures.clear();
-//	indices.clear();
-//}
+
+Mesh Mesh::operator=(Mesh&& rhs) noexcept
+{
+	//ALWAYS check for self-assignment.
+	if (this != &rhs)
+	{
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &EBO);
+		glDeleteBuffers(1, &VBO);
+		this->VAO = 0;
+		this->EBO = 0;
+		this->VBO = 0;		
+		std::swap(this->VAO, rhs.VAO);
+		std::swap(this->VBO, rhs.VBO);
+		std::swap(this->EBO, rhs.EBO);
+
+		delete this->material;
+		this->material = rhs.material;
+		rhs.material = nullptr;
+
+		vertices.clear();
+		textures.clear();
+		indices.clear();
+		this->vertices = std::move(rhs.vertices);
+		this->textures = std::move(rhs.textures);
+		this->indices = std::move(rhs.indices);
+
+	}
+}
+
+Mesh::~Mesh()
+{
+	glDeleteVertexArrays(1, &VAO);
+	this->VAO = 0;
+	glDeleteBuffers(1, &EBO);
+	this->EBO = 0;
+	glDeleteBuffers(1, &VBO);
+	this->VBO = 0;
+	vertices.clear();
+	textures.clear();
+	indices.clear();
+}
+
+Mesh::Mesh(Mesh&& rhs) noexcept
+{
+	this->vertices = std::move(rhs.vertices);
+	this->textures = std::move(rhs.textures);
+	this->indices = std::move(rhs.indices);
+	this->VAO = rhs.VAO;
+	this->VBO = rhs.VBO;
+	this->EBO = rhs.EBO;
+	this->material = rhs.material;
+	rhs.material = nullptr;
+	rhs.EBO = 0;
+	rhs.VAO = 0;
+	rhs.VBO = 0;
+}
+
+Mesh::Mesh(MaterialType t)
+{
+	if (t == BlingPhong)
+		material = new BlingPhongMaterial();
+	else if (t == PBR)
+		material = new PBRMaterial();
+}
 
 void Mesh::GetDataFrom(GeometryGenerator::MeshData data)
 {
@@ -29,7 +84,7 @@ void Mesh::GetDataFrom(GeometryGenerator::MeshData data)
 		vert.Normal = data.Vertices[i].Normal;
 		vert.Tangent = data.Vertices[i].TangentU;
 		vert.TexCoord = data.Vertices[i].TexC;
-		vertices.push_back(vert);
+		vertices.push_back(std::move(vert));
 	}
 
 	for (size_t i = 0; i < data.Indices32.size(); i++)

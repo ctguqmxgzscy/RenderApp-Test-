@@ -59,10 +59,8 @@ private:
     size_t m_fbo, m_texture;
     //MSAA Framebuffer and texture
     size_t m_fbo_msaa, m_texture_msaa;
-    //PBR FBO
-    size_t captureFBO, captureRBO;
     //PBR Textures
-    size_t irradianceMap, prefilterMap, brdfLUTTexture, envCubemap;
+    size_t irradianceMap, prefilterMap, brdfLUTTexture, envCubemap, hdrTexture;
     //3D Gizmo Manipulation
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     ImGuizmo::MODE mCurrentGizmoMode;
@@ -97,6 +95,7 @@ private:
     void DrawEffectToolWindow();
     void ShowEditorWindow();
     void ShowExportWindow();
+    void ShowGeometryCreateWindow();
     void ShowBlingPhongMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes);
     void ProcessBlingPhongDialog(Material* material, std::vector<Texture>& textures);
     void ProcessPBRDialog(Material* material, std::vector<Texture>& textures);
@@ -164,30 +163,14 @@ int RenderApp::Run() {
 
 #pragma region Init Some Varaibles
     // RenderItem PBR Material
-    items.push_back(new RenderItem());
-    Mesh mesh;
-    mesh.GetDataFrom(generator->CreateSphere(2, 32, 32));
-    delete mesh.material;
-    mesh.material = new PBRMaterial();
-    mesh.material->m_shader = &shaderManager->pbr_shader;
-    //Texture albedo_texture, ao_texture, metallic_texture, normal_texture, roughness_texture;
-    //albedo_texture.id = LoadTexture("Resources/pbr/gold/albedo.png");
-    //albedo_texture.type = "texture_albedo";
-    //mesh.textures.push_back(std::move(albedo_texture));
-    //ao_texture.id = LoadTexture("Resources/pbr/gold/ao.png");
-    //ao_texture.type = "texture_ao";
-    //mesh.textures.push_back(std::move(ao_texture));
-    //metallic_texture.id = LoadTexture("Resources/pbr/gold/metallic.png");
-    //metallic_texture.type = "texture_metallic";
-    //mesh.textures.push_back(std::move(metallic_texture));
-    //normal_texture.id = LoadTexture("Resources/pbr/gold/normal.png");
-    //normal_texture.type = "texture_normal";
-    //mesh.textures.push_back(std::move(normal_texture));
-    //roughness_texture.id = LoadTexture("Resources/pbr/gold/roughness.png");
-    //roughness_texture.type = "texture_roughness";
-    //mesh.textures.push_back(std::move(roughness_texture));
-    auto m = static_cast<PBRMaterial*>(mesh.material);
-    items[0]->setModel(&mesh);
+    //items.push_back(new RenderItem());
+    //Mesh mesh;
+    //mesh.GetDataFrom(generator->CreateSphere(2, 32, 32));
+    //delete mesh.material;
+    //mesh.material = new PBRMaterial();
+    //mesh.material->m_shader = &shaderManager->pbr_shader;
+    //auto m = static_cast<PBRMaterial*>(mesh.material);
+    //items[0]->setModel(&mesh);
     //GridLineData
     gridMesh.GetDataFrom(generator->CreateGridLine(24, 24, 12, 12));
     gridMesh.material->m_shader = new Shader("Shaders/gridline.vert", "Shaders/gridline.frag");
@@ -217,7 +200,7 @@ int RenderApp::Run() {
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     // set depth function to less than AND equal for skybox depth trick.
-    glDepthFunc(GL_LEQUAL);
+    glDepthFunc(GL_LESS);
     // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
@@ -355,6 +338,10 @@ void RenderApp::DrawUI(ImGuiIO& io)
         ShowExportWindow();
     }
 
+    if (windowFlags->should_geometry_open)
+    {
+        ShowGeometryCreateWindow();
+    }
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -845,7 +832,6 @@ void RenderApp::SetViewport() {
             ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
     }
     windowFlags->isViewportHover = ImGui::IsWindowHovered();
-    ImGui::End();
     style.WindowPadding = ImVec2(6, 6);
 
     if (leftMouse->isOnClicked)
@@ -1009,11 +995,12 @@ void RenderApp::DrawObjectWindow() {
                 {
                     std::vector<Mesh>& meshes = cur_item->getModel().getMeshes();
                     static size_t current_index = 0;
+                    static int e = 0;
                     if (MESH_MAX_SIZE >= meshes.size())
                     {
                         static const char* current_item = number[0];
                         ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
+                        ImGui::SameLine(); ImGui::SetNextItemWidth(150.f);
                         if (ImGui::BeginCombo("##Meshes", current_item))
                         {
                             for (unsigned int i = 0; i < meshes.size(); i++)
@@ -1026,14 +1013,61 @@ void RenderApp::DrawObjectWindow() {
                             }
                             ImGui::EndCombo();
                         }
+
+                        //Shading Mode
+                        const char* shading_mode[] = { "Bling-Phong","PBR"};
+                        static const char* current_mode = (meshes[current_index].material->type == PBR) ? shading_mode[1] : shading_mode[0];
+                        static int shading_cur_index = 0;
+                        ImGui::Dummy(ImVec2(fill_size)); ImGui::SameLine();
+                        ImGui::Text("Shading Mode");ImGui::SameLine(); 
+                        ImGui::SetNextItemWidth(150.f);
+                        if (ImGui::BeginCombo("##shading_mode_combo", current_mode))
+                        {
+                            for (unsigned int i = 0; i < IM_ARRAYSIZE(shading_mode); i++)
+                            {
+                                bool is_selected = (current_mode == shading_mode[i]);
+                                if (ImGui::Selectable(shading_mode[i], is_selected))
+                                {
+                                    current_mode = shading_mode[shading_cur_index = i];
+                                    switch (shading_cur_index)
+                                    {
+                                    case 0:
+                                    {
+                                        delete  meshes[current_index].material;
+                                        meshes[current_index].material = new BlingPhongMaterial();
+                                        meshes[current_index].material->setShader(&shaderManager->default_shader);
+                                    }; break;
+                                    case 1:
+                                    {
+                                        delete meshes[current_index].material;
+                                        meshes[current_index].material = new PBRMaterial();
+                                        meshes[current_index].material->setShader(&shaderManager->pbr_shader);
+                                    }; break;
+                                    default:
+                                        break;
+                                    }
+                                }
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        Material* material = meshes[current_index].material;
                         //Show Material        
                         if (current_index > meshes.size())
-                            current_index = 0, current_item = number[0];                        
-                        Material* material = meshes[current_index].material;
+                            current_index = 0, current_item = number[0];    
+                        
                         if (material->type == BlingPhong)
+                        {
+                            current_mode = shading_mode[0];
                             ShowBlingPhongMaterial(current_index, material, meshes);
+                        }
+
                         else if (material->type == PBR)
+                        {
+                            current_mode = shading_mode[1];
                             ShowPBRMaterial(current_index, material, meshes);
+                        }
                     }
                     //Material Texture-Mapping
                     if (meshes[current_index].material->type == BlingPhong)
@@ -1080,10 +1114,15 @@ void RenderApp::DrawObjectWindow() {
                     items.push_back(new RenderItem(items[i]));
                 }
                 if (ImGui::MenuItem("Delete"))
-                    items.erase(items.begin() + i);
+                {
+                    cur_item = nullptr;
+                    delete items[i];
+                    items[i] = nullptr;
+                    items.erase(items.begin() + i);                  
+                }
+
                 ImGui::EndPopup();
             }
-
         }
         ImGui::PopStyleVar();
         ImGui::End();
@@ -1155,7 +1194,7 @@ void RenderApp::DrawMainMenuWindow()
             if (ImGui::MenuItem("Load Model"))
             {
                 ifd::FileDialog::Instance().Open("ModelFileDialog", "Open A Model Image",
-                    "Model file (*.obj;*.3ds;*.blend;){.obj,.3ds,.blend},.*", true);
+                    "Model file (*.obj;*.3ds;*.blend;*.FBX;){.obj,.3ds,.blend,.FBX},.*", true);
 
             }
             if (ImGui::BeginMenu("Disabled", false)) // Disabled
@@ -1179,7 +1218,19 @@ void RenderApp::DrawMainMenuWindow()
             if (ImGui::MenuItem("Paste", "CTRL+V")) {}
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Geometry"))
+                windowFlags->should_geometry_open = true;
+            if (ImGui::MenuItem("Light"))
+                ;
+            if (ImGui::MenuItem("Camera"))
+                ;
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
+
+        ImGui::End();
         //Process FileDialog Result
         if (ifd::FileDialog::Instance().IsDone("ModelFileDialog")) {
             if (ifd::FileDialog::Instance().HasResult()) {
@@ -1208,6 +1259,7 @@ void RenderApp::DrawMainMenuWindow()
             ifd::FileDialog::Instance().Close();
         }
     }
+
 }
 
 void RenderApp::DrawToolWindow()
@@ -1516,7 +1568,11 @@ inline void RenderApp::DrawSkyboxToolWindow()
     if (ImGui::Begin("Skybox", &windowFlags->skybox_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
-       
+        ImGui::Dummy(fill_size);
+        ImGui::SameLine();
+        ImGui::Text("Skybox/EnvMap HDR");
+        ImGui::SameLine();
+        ImGui::ToggleButton("Skybox Toggle", &windowFlags->isSkyboxOn);
         if (windowFlags->isSkyboxOn)
         {
             float w = ImGui::GetWindowWidth() / 4;
@@ -1525,11 +1581,6 @@ inline void RenderApp::DrawSkyboxToolWindow()
             //Draw SkyboxTextures Region
             if (ImGui::CollapsingHeader("SkyBox"))
             {
-                ImGui::Dummy(fill_size);
-                ImGui::SameLine();
-                ImGui::Text("Skybox On/Off");
-                ImGui::SameLine();
-                ImGui::ToggleButton("Skybox Toggle", &windowFlags->isSkyboxOn);
                 ImGui::Dummy(ImVec2(12, 12)); ImGui::SameLine;
                 if (ImGui::CollapsingHeader("Skybox Preview"))
                 {
@@ -1595,16 +1646,7 @@ inline void RenderApp::DrawSkyboxToolWindow()
                     }
                 }
             }
-            //EnvTexture for PBR
-            if (ImGui::CollapsingHeader("PBR"))
-            {
-                ImGui::Dummy(fill_size);
-                ImGui::SameLine();
-                ImGui::Text("EnvMapping On/Off");
-                ImGui::SameLine();
-                ImGui::ToggleButton("EnvMapping Toggle", &windowFlags->isSkyboxOn);
-                ImGui::Dummy(ImVec2(12, 12)); ImGui::SameLine;
-            }
+          
             // file dialogs
             for (size_t i = 0; i < 6; i++)
                 if (ifd::FileDialog::Instance().IsDone(skybox_dialogs[i])) {
@@ -1622,6 +1664,38 @@ inline void RenderApp::DrawSkyboxToolWindow()
                     ifd::FileDialog::Instance().Close();
                 }
         }
+        else
+        {
+            //HDR EnvMap
+            if (ImGui::CollapsingHeader("EnvMap--HDR"))
+            {
+                ImGui::Dummy(ImVec2(100, 12)); ImGui::SameLine;
+                ImGui::Image((void*)this->hdrTexture, ImVec2(200, 200));
+                if (ImGui::Button("Import EnviromentMap .hdr"))
+                {
+                    ifd::FileDialog::Instance().Open("EnviromentMapping", "Open A HDR Image",
+                        "Image file (*.hdr;){.hdr},.*", true);
+                }
+
+            }
+            if (ifd::FileDialog::Instance().IsDone("EnviromentMapping"))
+            {
+                if (ifd::FileDialog::Instance().HasResult()) {
+                    const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                    if (res.size() == 1)
+                    {
+                        glDeleteTextures(1, &this->hdrTexture);
+                        glDeleteTextures(1, &this->brdfLUTTexture);
+                        glDeleteTextures(1, &this->irradianceMap);
+                        glDeleteTextures(1, &this->envCubemap);
+                        glDeleteTextures(1, &this->prefilterMap);
+                        LoadPBREnvMap(res[0].u8string().c_str());
+                    }
+                }
+                ifd::FileDialog::Instance().Close();
+            }
+        }
+
         ImGui::End();
     }
 }
@@ -1721,10 +1795,115 @@ inline void RenderApp::ShowExportWindow()
     }
 }
 
+inline void RenderApp::ShowGeometryCreateWindow()
+{
+    if (ImGui::Begin("GeometryWindow", &windowFlags->should_export_open))
+    {
+        ImVec2 fill_size = ImVec2(24, 24);
+        ImGui::Dummy(fill_size); ImGui::SameLine();
+        ImGui::Text(u8"创建几何体");
+
+        const char* mode_items[] = { "Box","Sphere","XXX" };
+        static const char* current_item = mode_items[0];
+        static int current_index = 0;
+        if (ImGui::BeginCombo("##create_combo", current_item))
+        {
+            for (unsigned int i = 0; i < IM_ARRAYSIZE(mode_items); i++)
+            {
+                bool is_selected = (current_item == mode_items[i]);
+                if (ImGui::Selectable(mode_items[i], is_selected))
+                    current_item = mode_items[current_index = i];
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        static float w = 2, h = 2, d = 2, r = 2;
+        static int n = 0, e = 0, slice = 10, stack = 10;
+        static MaterialType t = BlingPhong;
+ ;
+        if (ImGui::RadioButton("Bling-Phong Material", &e, 0))
+            t = BlingPhong;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("PBR Material", &e, 1))
+            t = PBR;
+        ImGui::Dummy(fill_size); ImGui::SameLine();
+        ImGui::SetNextItemWidth(40.0f);
+
+        if (ImGui::Button(u8"创建"))
+        {
+            if (current_index == 0)
+                ImGui::OpenPopup("Create Box");
+            else if (current_index == 1)
+                ImGui::OpenPopup("Create Sphere");
+            else if (current_index == 2)
+                ImGui::OpenPopup("Create XXX");
+        }        
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        if (ImGui::BeginPopupModal("Create Box", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text(u8"请输入Box的相关参数"); ImGui::Separator();
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::InputFloat(u8"width", &w, 0.1, 0.05, "%.3f");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::InputFloat(u8"height", &h, 0.1, 0.05, "%.3f");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::InputFloat(u8"depth", &d, 0.1, 0.05, "%.3f");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::SliderInt(u8"细分次数", &n, 0, 10);
+
+            ImGui::Dummy(ImVec2(60, 0)); ImGui::SameLine();
+            if (ImGui::Button("OK", ImVec2(120, 0))) 
+            {
+                items.push_back(new RenderItem());
+                RenderItem item;
+                Mesh mesh(t);
+                mesh.GetDataFrom(generator->CreateBox(w, h, d, n));
+                items.back()->setModel(std::move(mesh));
+                ImGui::CloseCurrentPopup(); 
+            }
+            ImGui::SetItemDefaultFocus(); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(100, 0)); ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopupModal("Create Sphere", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text(u8"请输入Sphere的相关参数");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::InputFloat(u8"radius", &r, 0.1, 0.05, "%.3f");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::SliderInt(u8"sliceCount", &slice, 10, 30, "%d");
+            ImGui::Dummy(ImVec2(40, 0)); ImGui::SameLine();
+            ImGui::SliderInt(u8"stackCount", &stack, 10, 30, "%d");
+
+            ImGui::Dummy(ImVec2(60, 0)); ImGui::SameLine();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { 
+                items.push_back(new RenderItem());
+                RenderItem item;
+                Mesh mesh(t);
+                mesh.GetDataFrom(generator->CreateSphere(r, slice, stack));
+                items.back()->setModel(std::move(mesh));
+                ImGui::CloseCurrentPopup(); 
+            }
+            ImGui::SetItemDefaultFocus(); ImGui::SameLine();
+            ImGui::Dummy(ImVec2(100, 0)); ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
+        ImGui::End();
+    }
+}
+
 inline void RenderApp::LoadPBREnvMap(const char* path)
 {
+
+    size_t captureFBO, captureRBO;
     // pbr: setup framebuffer
-// ----------------------
+    // ----------------------
     glGenFramebuffers(1, &captureFBO);
     glGenRenderbuffers(1, &captureRBO);
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
@@ -1736,8 +1915,8 @@ inline void RenderApp::LoadPBREnvMap(const char* path)
     // ---------------------------------
     stbi_set_flip_vertically_on_load(true);
     int width, height, nrComponents;
-    float* data = stbi_loadf("Resources/newport_loft.hdr", &width, &height, &nrComponents, 0);
-    unsigned int hdrTexture;
+    float* data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+   
     if (data)
     {
         glGenTextures(1, &hdrTexture);
@@ -1793,6 +1972,11 @@ inline void RenderApp::LoadPBREnvMap(const char* path)
 
     glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_STENCIL_TEST);
+
     for (unsigned int i = 0; i < 6; ++i)
     {
         shaderManager->equirectangularToCubemapShader.setMat4("view", captureViews[i]);
@@ -1913,6 +2097,9 @@ inline void RenderApp::LoadPBREnvMap(const char* path)
     shaderManager->brdfShader.use();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     renderQuad();
+
+    glDeleteFramebuffers(1, &captureFBO);
+    glDeleteRenderbuffers(1, &captureRBO);
 }
 
 inline void RenderApp::ShowBlingPhongMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes)
@@ -2158,12 +2345,12 @@ inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::v
     {
         if (ImGui::ImageButton("#Albedo", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Albedo Mapping", "Open Albedo Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     }
     else
         if (ImGui::ImageButton("#Albedo", 0, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Albedo Mapping", "Open Albedo Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     //Ao
     ImGui::NewLine(); ImGui::Dummy(fill_size);
     ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
@@ -2173,12 +2360,12 @@ inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::v
     {
         if (ImGui::ImageButton("#Ao", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Ao Mapping", "Open Ao Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.**", true);
     }
     else
         if (ImGui::ImageButton("#Ao", 0, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Ao Mapping", "Open Ao Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     //Metallic
     ImGui::NewLine(); ImGui::Dummy(fill_size);
     ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
@@ -2188,12 +2375,12 @@ inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::v
     {
         if (ImGui::ImageButton("#Metallic", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Metallic Mapping", "Open Metallic Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     }
     else
         if (ImGui::ImageButton("#Metallic", 0, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Metallic Mapping", "Open Metallic Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     //Normal
     ImGui::NewLine(); ImGui::Dummy(fill_size);
     ImGui::SameLine(); ImGui::Text("Normal");
@@ -2202,12 +2389,12 @@ inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::v
     {
         if (ImGui::ImageButton("#Normal", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Normal Mapping", "Open Normal Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     }
     else
         if (ImGui::ImageButton("#Normal", 0, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Normal Mapping", "Open Normal Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     //Roughness
     ImGui::NewLine(); ImGui::Dummy(fill_size);
     ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
@@ -2217,12 +2404,12 @@ inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::v
     {
         if (ImGui::ImageButton("#Roughness", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Roughness Mapping", "Open Roughness Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
     }
     else
         if (ImGui::ImageButton("#Roughness", 0, ImVec2(32, 32)))
             ifd::FileDialog::Instance().Open("PBR Roughness Mapping", "Open Roughness Map",
-                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
 
     ImGui::Dummy(fill_size);
     ImGui::SameLine();

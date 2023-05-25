@@ -34,6 +34,8 @@ struct Texture
 
 	~Texture()
 	{
+		glDeleteTextures(1, &id);
+		this->id = 0;
 		type.clear();
 		path.Clear();
 	}
@@ -50,8 +52,15 @@ public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 		std::vector<Texture> textures);
+	Mesh(MaterialType t); 
 	Mesh() { this->material = new BlingPhongMaterial(); };
-	//~Mesh();
+
+	Mesh(const Mesh&) = delete;
+	Mesh& operator=(const Mesh&) = delete;
+
+	Mesh(Mesh&& rhs) noexcept;
+	Mesh operator=(Mesh&& rhs) noexcept;
+	~Mesh();
 	 unsigned int& get_VAO() { return this->VAO; }
 	 unsigned int& get_VBO() { return this->VBO; }
 	 unsigned int& get_EBO() { return this->EBO; }

@@ -8,7 +8,7 @@ Model::Model(const char* path)
 
 Model::Model(Mesh mesh)
 {
-	this->meshes.push_back(mesh); 
+	this->meshes.push_back(std::move(mesh)); 
 	this->directory = "No Directory";
 	this->path = "No Path!";
 }
@@ -135,6 +135,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 		for (unsigned int j = 0; j < face.mNumIndices; j++)
 			indices.push_back(face.mIndices[j]);
 	}
+	
 	//判断该网格是用到了某些材质
 	if (mesh->mMaterialIndex >= 0) {
 		//通过获得loadMaterialTextures获取该网格所需要的所有diffuse和specular贴图

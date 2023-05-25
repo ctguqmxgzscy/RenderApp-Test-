@@ -15,6 +15,7 @@ class Material
 public:
 	MaterialType type;
 	Shader* m_shader;
+	~Material();
 	void setShader(Shader* shader) { this->m_shader = shader; }
 };
 

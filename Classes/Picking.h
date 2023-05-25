@@ -174,7 +174,7 @@ public:
 public:
 	Model& getModel() { return *m_Model_; }
 	void setModel(Model* model) { this->m_Model_ = model; }
-	void setModel(Mesh* mesh) { if (this->m_Model_==NULL) this->m_Model_ = new Model(*mesh); }
+	void setModel(Mesh&& mesh) { if (this->m_Model_==NULL) this->m_Model_ = new Model(std::move(mesh)); }
     std::string getName() { return _name; }
     void setName(std::string name) {this->_name = name;}
     bool isDisabled() { return this->_is_diabled; }

@@ -60,7 +60,10 @@ float planeVertices[] = {
 	-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
 	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
 	 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-	 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	 1.0f,  1.0f, 0.0f, 1.0f, 1.0f
 };
 //grid line data
 Mesh gridMesh;
@@ -121,6 +124,8 @@ struct WindowFlags
 	int export_w = 0;
 	int export_h = 0;
 	bool isMSAAOn = false;
+	//Geometry Window
+	bool should_geometry_open = false;
 };
 
 struct WindowResources
@@ -173,7 +178,6 @@ std::string pbr_material_dialogs[5] =
 	"PBR Normal Mapping",
 	"PBR Roughness Mapping",
 };
-
 
 // loads a cubemap texture from 6 individual texture faces
 // order:

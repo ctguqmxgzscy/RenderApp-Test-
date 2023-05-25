@@ -93,6 +93,7 @@ RenderItem::~RenderItem()
     this->children.clear();
     count--;
     delete this->m_Model_;
+    this->m_Model_ = nullptr;
 }
 
 void RenderItem::Draw() {

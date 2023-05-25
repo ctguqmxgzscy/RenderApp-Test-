@@ -1,10 +1,12 @@
 #include"Material.h"
 
-
+Material::~Material()
+{
+	m_shader = nullptr;
+}
 
 BlingPhongMaterial::~BlingPhongMaterial()
 {
-	
 }
 
 BlingPhongMaterial::BlingPhongMaterial()
