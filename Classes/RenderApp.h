@@ -52,12 +52,17 @@ private:
     size_t skyboxVAO, skyboxVBO, skyboxTextureID;
     //ScreenTexture VAO,VBO
     size_t  screenVAO, screenVBO;
+    size_t planeVAO, planeVBO;
     //Effecs Framebuffer and texture
     size_t screenFbo, screenTexture;
     //Custom Framebuffer and texture
     size_t m_fbo, m_texture;
     //MSAA Framebuffer and texture
     size_t m_fbo_msaa, m_texture_msaa;
+    //PBR FBO
+    size_t captureFBO, captureRBO;
+    //PBR Textures
+    size_t irradianceMap, prefilterMap, brdfLUTTexture, envCubemap;
     //3D Gizmo Manipulation
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     ImGuizmo::MODE mCurrentGizmoMode;
@@ -85,12 +90,17 @@ public:
     void DrawMainMenuWindow();
     void DrawToolWindow();
 private:
+    void LoadPBREnvMap(const char* path);
     void DrawCameraToolWindow();
     void DrawLightToolWindow();
     void DrawSkyboxToolWindow();
     void DrawEffectToolWindow();
     void ShowEditorWindow();
     void ShowExportWindow();
+    void ShowBlingPhongMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes);
+    void ProcessBlingPhongDialog(Material* material, std::vector<Texture>& textures);
+    void ProcessPBRDialog(Material* material, std::vector<Texture>& textures);
+    void ShowPBRMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes);
 private:
     void CreateFBO(int width, int height);
     void CreateMSAAFBO(int width, int height);
@@ -153,15 +163,34 @@ int RenderApp::Init()
 int RenderApp::Run() {
 
 #pragma region Init Some Varaibles
-    //RenderItems
-    items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
+    // RenderItem PBR Material
     items.push_back(new RenderItem());
     Mesh mesh;
     mesh.GetDataFrom(generator->CreateSphere(2, 32, 32));
-    items[1]->setModel(&mesh);
+    delete mesh.material;
+    mesh.material = new PBRMaterial();
+    mesh.material->m_shader = &shaderManager->pbr_shader;
+    //Texture albedo_texture, ao_texture, metallic_texture, normal_texture, roughness_texture;
+    //albedo_texture.id = LoadTexture("Resources/pbr/gold/albedo.png");
+    //albedo_texture.type = "texture_albedo";
+    //mesh.textures.push_back(std::move(albedo_texture));
+    //ao_texture.id = LoadTexture("Resources/pbr/gold/ao.png");
+    //ao_texture.type = "texture_ao";
+    //mesh.textures.push_back(std::move(ao_texture));
+    //metallic_texture.id = LoadTexture("Resources/pbr/gold/metallic.png");
+    //metallic_texture.type = "texture_metallic";
+    //mesh.textures.push_back(std::move(metallic_texture));
+    //normal_texture.id = LoadTexture("Resources/pbr/gold/normal.png");
+    //normal_texture.type = "texture_normal";
+    //mesh.textures.push_back(std::move(normal_texture));
+    //roughness_texture.id = LoadTexture("Resources/pbr/gold/roughness.png");
+    //roughness_texture.type = "texture_roughness";
+    //mesh.textures.push_back(std::move(roughness_texture));
+    auto m = static_cast<PBRMaterial*>(mesh.material);
+    items[0]->setModel(&mesh);
     //GridLineData
     gridMesh.GetDataFrom(generator->CreateGridLine(24, 24, 12, 12));
-    gridMesh.material.m_shader = new Shader("Shaders/gridline.vert", "Shaders/gridline.frag");
+    gridMesh.material->m_shader = new Shader("Shaders/gridline.vert", "Shaders/gridline.frag");
     //skybox shader,VAO,VBO
     shaderManager->skybox_shader.use();
     shaderManager->skybox_shader.setInt("skybox", 0);
@@ -183,22 +212,46 @@ int RenderApp::Run() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+    // set depth function to less than AND equal for skybox depth trick.
+    glDepthFunc(GL_LEQUAL);
+    // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
     //Default shader    
     shaderManager->default_shader.use();
     shaderManager->default_shader.setFloat("material.shininess", 32.f);
     shaderManager->default_shader.setDirLight(*(lightManager->dirLight));
     shaderManager->default_shader.setPointLight(*(lightManager->pointLight));
+    //PBR shader
+    shaderManager->pbr_shader.use();
+    shaderManager->pbr_shader.setPBRPointLight(*(lightManager->pbrPointLight));
+    shaderManager->pbr_shader.setInt("irradianceMap", 0);
+    shaderManager->pbr_shader.setInt("prefilterMap", 1);
+    shaderManager->pbr_shader.setInt("brdfLUT", 2);
+    shaderManager->pbr_shader.setInt("material.albedoMap", 3);
+    shaderManager->pbr_shader.setInt("material.aoMap", 4);
+    shaderManager->pbr_shader.setInt("material.metallicMap", 5);
+    shaderManager->pbr_shader.setInt("material.normalMap", 6);
+    shaderManager->pbr_shader.setInt("material.roughnessMap", 7);
+
+    //Background shader
+    shaderManager->backgroundShader.use();
+    shaderManager->backgroundShader.setInt("environmentMap", 0);
+
     //skybox texture
     skyboxTextureID = loadCubemap(resources->skybox_faces);
+    ImGuiIO& io = ImGui::GetIO();
     //ShaderTextEditor
     auto lang = TextEditor::LanguageDefinition::GLSL();
     editor.SetLanguageDefinition(lang);
     editor.SetPalette(TextEditor::GetDarkPalette());
-    ImGuiIO& io = ImGui::GetIO();
     // ImFileDialog requires you to set the CreateTexture and DeleteTexture
     ifd::FileDialog::Instance().CreateTexture = [](uint8_t* data, int w, int h, char fmt) -> void* {
         GLuint tex;
-
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -208,16 +261,24 @@ int RenderApp::Run() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, (fmt == 0) ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
-
         return (void*)tex;
     };
     ifd::FileDialog::Instance().DeleteTexture = [](void* tex) {
         GLuint texID = (GLuint)((uintptr_t)tex);
         glDeleteTextures(1, &texID);
     };
-    //config global context
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // initialize static shader uniforms before rendering
+    // --------------------------------------------------
+    glm::mat4 projection = cur_camera->getProjectionMatrix();
+    shaderManager->pbr_shader.use();
+    shaderManager->pbr_shader.setMat4("projection", projection);
+    shaderManager->backgroundShader.use();
+    shaderManager->backgroundShader.setMat4("projection", projection);
+
+    LoadPBREnvMap("Resources/newport_loft.hdr");
+
 #pragma endregion
    
     //MainLoop
@@ -375,9 +436,9 @@ inline void RenderApp::CreateMSAAFBO(int width, int height)
 
 inline void RenderApp::DrawGridLine(Mesh& mesh)
 {
-    mesh.material.m_shader->use();
+    mesh.material->m_shader->use();
     glm::mat4 model = glm::mat4(1.0f);
-    mesh.material.m_shader->setMVP(model, 
+    mesh.material->m_shader->setMVP(model,
         cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
     glBindVertexArray(mesh.get_VAO());
     /*GL_POINTS、GL_LINE_STRIP、GL_LINE_LOOP、GL_LINES、GL_TRIANGLE_STRIP、GL_TRIANGLE_FAN、GL_TRIANGLES、GL_QUAD_STRIP、GL_QUADS才GL_POLYGON。*/
@@ -403,16 +464,14 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         if (!items[i]->isDisabled())  
             for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
             {
-                Material& material = items[i]->getModel().getMeshes()[j].material;
+                Material& material = *(items[i]->getModel().getMeshes()[j].material);
                 material.setShader(&shaderManager->picking_shader);
                 material.m_shader->use();
                 material.m_shader->setMVP(items[i]->transform.getModelMat(),
-                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
+                    view, projection);
                 material.m_shader->setUint("ModelIndex", i);
-                material.m_shader->setUint("MeshSize", 
-                    items[i]->getModel().getMeshes().size());
+                material.m_shader->setUint("MeshSize", items[i]->getModel().getMeshes().size());
                 items[i]->getModel().getMeshes()[j].Draw_PickingEffects(j);
-
             }     
     }
     pickingTexture->DisableWriting();
@@ -424,6 +483,7 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (!windowFlags->shouldExport)
@@ -434,35 +494,66 @@ inline void RenderApp::draw_callback(GLFWwindow* window)
         if (!items[i]->isDisabled())
             for (size_t j = 0; j < items[i]->getModel().getMeshes().size(); j++)
             {
-                Material& material = items[i]->getModel().getMeshes()[j].material;
-                material.setShader(&shaderManager->default_shader);
-                material.m_shader->use();
-                material.m_shader->setMVP(items[i]->transform.getModelMat(),
-                    cur_camera->getViewMatrix(), cur_camera->getProjectionMatrix());
-                material.m_shader->setDirLight(*(lightManager->dirLight));
-                material.m_shader->setPointLight(*(lightManager->pointLight));
+                Material& material = *(items[i]->getModel().getMeshes()[j].material);
+                auto& pbr_texs = items[i]->getModel().getMeshes()[j].textures;
+                if (material.type == BlingPhong)
+                {
+                    material.setShader(&shaderManager->default_shader);
+                    material.m_shader->use();
+                    material.m_shader->setDirLight(*(lightManager->dirLight));
+                    material.m_shader->setPointLight(*(lightManager->pointLight));
+                }
+                else if (material.type == PBR)
+                {
+                    material.setShader(&shaderManager->pbr_shader);
+                    PBRMaterial* m = static_cast<PBRMaterial*>(&material);
+                    material.m_shader->use();
+                    // bind pre-computed IBL data
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+                    material.m_shader->setPBRPointLight(*(lightManager->pbrPointLight));
+                }
+                material.m_shader->setMVP(items[i]->transform.getModelMat(), 
+                    view, projection);
                 material.m_shader->setVec3("viewPos", cur_camera->Position);
                 items[i]->getModel().getMeshes()[j].Draw();
             }
     }
-    glDisable(GL_CULL_FACE);
+ 
     //Skybox 
     if (windowFlags->isSkyboxOn)
     {
-        // change depth function so depth test passes when values are equal to depth buffer's content
+        glDisable(GL_CULL_FACE);
+        //// render skybox (render as last to prevent overdraw)
         glDepthFunc(GL_LEQUAL);
-        shaderManager->skybox_shader.use();
-        //remove translation from view matrix
-        view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
-        shaderManager->skybox_shader.setMat4("view", view);
-        shaderManager->skybox_shader.setMat4("projection", projection);
-        //skybox cube
-        glBindVertexArray(skyboxVAO);
+        shaderManager->backgroundShader.use();
+        shaderManager->backgroundShader.setMat4("view", view);
+        shaderManager->backgroundShader.setMat4("projection", projection);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap); // display irradiance map
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap); // display prefilter map
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+        renderCube();
         glDepthFunc(GL_LESS);
+        //Bling-Phong Disabled
+        //// change depth function so depth test passes when values are equal to depth buffer's content
+        //glDepthFunc(GL_LEQUAL);
+        //shaderManager->skybox_shader.use();
+        ////remove translation from view matrix
+        //view = glm::mat4(glm::mat3(cur_camera->getViewMatrix()));
+        //shaderManager->skybox_shader.setMat4("view", view);
+        //shaderManager->skybox_shader.setMat4("projection", projection);
+        ////skybox cube
+        //glBindVertexArray(skyboxVAO);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glBindVertexArray(0);
+        //glDepthFunc(GL_LESS);
     }
     if (windowFlags->isMSAAOn)
     {
@@ -937,226 +1028,18 @@ void RenderApp::DrawObjectWindow() {
                         }
                         //Show Material        
                         if (current_index > meshes.size())
-                            current_index = 0, current_item = number[0];
-                        Material& material = meshes[current_index].material;
-                        size_t p = 0;
-                        //Ambient
-                        ImGui::Dummy(fill_size);
-                        ImGui::SameLine();
-                        ImGui::ColorEdit3("Ambient", glm::value_ptr(material.Ambient));
-                        //Diffuse Mapping
-                        ImGui::NewLine(); ImGui::Dummy(fill_size);
-                        ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
-                        ImGui::ColorEdit3("Diffuse ", glm::value_ptr(material.Diffuse));
-                        ImGui::SameLine();
-                        ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);             // Black background
-                        ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // No tint
-                        if (material.diffuseMapping)
-                        {
-                            if (ImGui::ImageButton("#Diffuse", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                        }
-                        else
-                            if (ImGui::ImageButton("#Diffuse", 0, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-
-                        //Specular Mapping
-                        ImGui::NewLine(); ImGui::Dummy(fill_size);
-                        ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
-                        ImGui::ColorEdit3("Specular", glm::value_ptr(material.Specular));
-                        ImGui::SameLine();
-                        if (material.specularMapping)
-                        {
-                            if (ImGui::ImageButton("#Specular", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                        }
-                        else
-                            if (ImGui::ImageButton("#Specular", 0, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                        //Normal Mapping
-                        ImGui::Dummy(fill_size); ImGui::SameLine();
-                        ImGui::Text("Normal Map"); ImGui::SameLine();
-                        if (material.normalMapping)
-                        {
-                            if (ImGui::ImageButton("#Normal", (void*)meshes[current_index].textures[p++].id, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                        }
-                        else
-                            if (ImGui::ImageButton("#Normal", 0, ImVec2(32, 32)))
-                                ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
-                                    "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                        //Shininess
-                        ImGui::Dummy(fill_size); ImGui::SameLine();
-                        ImGui::SliderFloat("Shininess", &material.Shininess, 0, 128);
-                    }
-
-                    ImGui::Dummy(fill_size);
-                    ImGui::SameLine();
-                    Material& material = meshes[current_index].material;
-                    ImGui::Text(material.m_shader->vertexName.c_str());
-                    ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(24 * 3, 30));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Open .vert", ImVec2(24 * 6, 30)))
-                    {
-                        windowFlags->shader_window_open = true;
-                        windowFlags->shader_flag = VERTEX;
-                        editor.SetText(material.m_shader->vertexCode);
-                    }
-
-                    ImGui::Dummy(fill_size);
-                    ImGui::SameLine();
-                    ImGui::Text(material.m_shader->fragmentName.c_str());
-                    ImGui::SameLine();
-                    ImGui::Dummy(ImVec2(24 * 3, 30));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Open .frag", ImVec2(24 * 6, 30)))
-                    {
-                        windowFlags->shader_window_open = true;
-                        windowFlags->shader_flag = FRAGMENT;
-                        windowFlags->cur_shader = material.m_shader;
-                        editor.SetText(material.m_shader->fragmentCode);
+                            current_index = 0, current_item = number[0];                        
+                        Material* material = meshes[current_index].material;
+                        if (material->type == BlingPhong)
+                            ShowBlingPhongMaterial(current_index, material, meshes);
+                        else if (material->type == PBR)
+                            ShowPBRMaterial(current_index, material, meshes);
                     }
                     //Material Texture-Mapping
-                    std::vector<Texture>& textures = meshes[current_index].textures;
-                    for (size_t i = 0; i < 3; i++)
-                    {
-                        if (ifd::FileDialog::Instance().IsDone(material_dialogs[i])) {
-                            if (ifd::FileDialog::Instance().HasResult()) {
-                                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
-                                //old pic will be replaced with new pic
-                                if (res.size() == 1)
-                                {
-                                    switch (i)
-                                    {
-                                    case 0:
-                                    {
-                                        if (material.diffuseMapping == false)
-                                        {
-                                            Texture tex;
-                                            tex.path = res[0].u8string();
-                                            tex.id = LoadTexture(tex.path.C_Str(), true);
-                                            tex.type = "texture_diffuse";
-                                            textures.insert(textures.begin(), std::move(tex));
-                                        }
-                                        else
-                                        {
-                                            for (size_t j = 0; j < textures.size(); j++)
-                                            {
-                                                if (textures[j].type == "texture_diffuse")
-                                                {
-                                                    textures[j].path = res[0].u8string();
-                                                    glDeleteTextures(1, &textures[j].id);
-                                                    textures[j].id = LoadTexture(textures[j].path.C_Str(), true);
-                                                    textures[j].type = "texture_diffuse";
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        material.diffuseMapping = true;
-                                    }; break;
-                                    case 1:
-                                    {
-                                        bool k = false;
-                                        if (material.specularMapping == false)
-                                        {
-                                            Texture tex;
-                                            tex.path = res[0].u8string();
-                                            tex.id = LoadTexture(tex.path.C_Str());
-                                            tex.type = "texture_specular";
-                                            for (size_t j = 0; j < textures.size(); j++)
-                                            {
-                                                if (textures[j].type == "texture_diffuse")
-                                                {
-                                                    textures.insert(textures.begin() + j + 1, tex);
-                                                    k = true;
-                                                    break;
-                                                }
-                                            }
-                                            if (k)
-                                                break;
-                                            else
-                                                textures.insert(textures.begin(), std::move(tex));
-                                        }
-                                        else
-                                        {
-                                            for (size_t j = 0; j < textures.size(); j++)
-                                            {
-                                                if (textures[j].type == "texture_specular")
-                                                {
-                                                    textures[j].path = res[0].u8string();
-                                                    glDeleteTextures(1, &textures[j].id);
-                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
-                                                    textures[j].type = "texture_specular";
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        material.specularMapping = true;
-                                    }; break;
-                                    case 2:
-                                    {
-                                        bool k = false;
-                                        if (material.normalMapping == false)
-                                        {
-                                            Texture tex;
-                                            tex.path = res[0].u8string();
-                                            tex.id = LoadTexture(tex.path.C_Str());
-                                            tex.type = "texture_normal";
-                                            for (size_t j = 0; j < textures.size(); j++)
-                                            {
-                                                if (textures[j].type == "texture_specular")
-                                                {
-                                                    textures.insert(textures.begin() + j + 1, tex);
-                                                    k = true;
-                                                    break;
-                                                }
-                                            }
-                                            if (k)
-                                                break;
-                                            else
-                                                for (size_t j = 0; j < textures.size(); j++)
-                                                {
-                                                    if (textures[j].type == "texture_diffuse")
-                                                    {
-                                                        textures.insert(textures.begin() + j + 1, tex);
-                                                        k = true;
-                                                        break;
-                                                    }
-                                                }
-                                            if (k)
-                                                break;
-                                            else
-                                                textures.insert(textures.begin(), std::move(tex));
-                                        }
-                                        else
-                                        {
-                                            for (size_t j = 0; j < textures.size(); j++)
-                                            {
-                                                if (textures[j].type == "texture_normal")
-                                                {
-                                                    textures[j].path = res[0].u8string();
-                                                    glDeleteTextures(1, &textures[j].id);
-                                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
-                                                    textures[j].type = "texture_normal";
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        material.normalMapping = true;
-                                    }; break;
-                                    default:break;
-                                    }
-                                }
-                            }
-                            ifd::FileDialog::Instance().Close();
-                        }
-                    }
+                    if (meshes[current_index].material->type == BlingPhong)
+                        ProcessBlingPhongDialog(meshes[current_index].material, meshes[current_index].textures);
+                    else if (meshes[current_index].material->type == PBR)
+                        ProcessPBRDialog(meshes[current_index].material, meshes[current_index].textures);
                 }
             }
         }
@@ -1532,65 +1415,97 @@ inline void RenderApp::DrawLightToolWindow()
         //Light Setting
         if (windowFlags->isLightOn)
         {
-            if (ImGui::CollapsingHeader("DirLight Atrribute"))
+            if (ImGui::CollapsingHeader("BlingPhong-LightingModel"))
             {
-                ImGui::Dummy(fill_size);
+                ImGui::Dummy(ImVec2(12,12));
                 ImGui::SameLine();
-                ImGui::Text("Directional Light On");
-                ImGui::SameLine();
-                ImGui::ToggleButton("DirLight Toggle", &windowFlags->isLightCastersOn[0]);
-                //Attribute Panel
-                if (windowFlags->isLightCastersOn[0])
+                if (ImGui::CollapsingHeader("DirLight Atrribute"))
                 {
-                    ImGui::InputFloat3("DirLight Direction", glm::value_ptr(lightManager->dirLight->direction), "%.1f");
-                    ImGui::ColorEdit3("DirLight Ambient", glm::value_ptr(lightManager->dirLight->ambient));
-                    ImGui::ColorEdit3("DirLight Diffuse", glm::value_ptr(lightManager->dirLight->diffuse));
-                    ImGui::ColorEdit3("DirLight Specular", glm::value_ptr(lightManager->dirLight->specular));
-                    //Change the uniform value in default_shader
-                    shaderManager->default_shader.use();
-                    shaderManager->default_shader.setDirLight(*(lightManager->dirLight));
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::Text("Directional Light On");
+                    ImGui::SameLine();
+                    ImGui::ToggleButton("DirLight Toggle", &windowFlags->isLightCastersOn[0]);
+                    //Attribute Panel
+                    if (windowFlags->isLightCastersOn[0])
+                    {
+                        ImGui::InputFloat3("DirLight Direction", glm::value_ptr(lightManager->dirLight->direction), "%.1f");
+                        ImGui::ColorEdit3("DirLight Ambient", glm::value_ptr(lightManager->dirLight->ambient));
+                        ImGui::ColorEdit3("DirLight Diffuse", glm::value_ptr(lightManager->dirLight->diffuse));
+                        ImGui::ColorEdit3("DirLight Specular", glm::value_ptr(lightManager->dirLight->specular));
+                        //Change the uniform value in default_shader
+                        shaderManager->default_shader.use();
+                        shaderManager->default_shader.setDirLight(*(lightManager->dirLight));
+                    }
+                }
+                ImGui::Dummy(ImVec2(12, 12));
+                ImGui::SameLine();
+                if (ImGui::CollapsingHeader("PointLight Atrribute"))
+                {
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::Text("Point Light On");
+                    ImGui::SameLine();
+                    ImGui::ToggleButton("PointLight Toggle", &windowFlags->isLightCastersOn[1]);
+
+                    if (windowFlags->isLightCastersOn[1])
+                    {
+                        ImGui::InputFloat3("PointLight Position", glm::value_ptr(lightManager->pointLight->position), "%.1f");
+                        ImGui::ColorEdit3("PointLight Ambient", glm::value_ptr(lightManager->pointLight->ambient));
+                        ImGui::ColorEdit3("PointLight Diffuse", glm::value_ptr(lightManager->pointLight->diffuse));
+                        ImGui::ColorEdit3("PointLight Specular", glm::value_ptr(lightManager->pointLight->specular));
+
+                        shaderManager->default_shader.use();
+                        shaderManager->default_shader.setPointLight(*(lightManager->pointLight));
+                    }
+                }
+                ImGui::Dummy(ImVec2(12, 12));
+                ImGui::SameLine();
+                if (ImGui::CollapsingHeader("SpotLight Atrribute"))
+                {
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::Text("Spot Light On");
+                    ImGui::SameLine();
+                    ImGui::ToggleButton("SpotLight Toggle", &windowFlags->isLightCastersOn[2]);
+
+                    if (windowFlags->isLightCastersOn[2])
+                    {
+                        ImGui::InputFloat("SpotLight InnerCutOut", &lightManager->spotLight->innerCutOut, 0.01f, 0.01f, "%.3f");
+                        ImGui::InputFloat("SpotLight OutterCutOut", &lightManager->spotLight->outterCutOut, 0.01f, 0.01f, "%.3f");
+
+                        ImGui::InputFloat3("SpotLight Position", glm::value_ptr(lightManager->spotLight->position), "%.1f");
+                        ImGui::InputFloat3("SpotLight Direction", glm::value_ptr(lightManager->spotLight->direction), "%.1f");
+
+                        ImGui::ColorEdit3("SpotLight Ambient", glm::value_ptr(lightManager->spotLight->ambient));
+                        ImGui::ColorEdit3("SpotLight Diffuse", glm::value_ptr(lightManager->spotLight->diffuse));
+                        ImGui::ColorEdit3("SpotLight Specular", glm::value_ptr(lightManager->spotLight->specular));
+                    }
                 }
             }
-            if (ImGui::CollapsingHeader("PointLight Atrribute"))
+            if (ImGui::CollapsingHeader("PBR-LightingModel"))
             {
-                ImGui::Dummy(fill_size);
+                ImGui::Dummy(ImVec2(12, 12));
                 ImGui::SameLine();
-                ImGui::Text("Point Light On");
-                ImGui::SameLine();
-                ImGui::ToggleButton("PointLight Toggle", &windowFlags->isLightCastersOn[1]);
-
-                if (windowFlags->isLightCastersOn[1])
+                if (ImGui::CollapsingHeader("PBR PointLight Atrribute"))
                 {
-                    ImGui::InputFloat3("PointLight Position", glm::value_ptr(lightManager->pointLight->position), "%.1f");
-                    ImGui::ColorEdit3("PointLight Ambient", glm::value_ptr(lightManager->pointLight->ambient));
-                    ImGui::ColorEdit3("PointLight Diffuse", glm::value_ptr(lightManager->pointLight->diffuse));
-                    ImGui::ColorEdit3("PointLight Specular", glm::value_ptr(lightManager->pointLight->specular));
+                    ImGui::Dummy(fill_size);
+                    ImGui::SameLine();
+                    ImGui::Text("PBR-PointLight On");
+                    ImGui::SameLine();
+                    ImGui::ToggleButton("PBR-PointLight Toggle", &windowFlags->isLightCastersOn[1]);
 
-                    shaderManager->default_shader.use();
-                    shaderManager->default_shader.setPointLight(*(lightManager->pointLight));
+                    if (windowFlags->isLightCastersOn[1])
+                    {
+                        ImGui::InputFloat3("PBR-PointLight Position", glm::value_ptr(lightManager->pbrPointLight->position), "%.1f");
+                        ImGui::ColorEdit3("PBR-PointLight Color", glm::value_ptr(lightManager->pbrPointLight->lightColor));
+
+                        shaderManager->pbr_shader.use();
+                        shaderManager->pbr_shader.setPBRPointLight(*(lightManager->pbrPointLight));
+                    }
                 }
             }
-            if (ImGui::CollapsingHeader("SpotLight Atrribute"))
-            {
-                ImGui::Dummy(fill_size);
-                ImGui::SameLine();
-                ImGui::Text("Spot Light On");
-                ImGui::SameLine();
-                ImGui::ToggleButton("SpotLight Toggle", &windowFlags->isLightCastersOn[2]);
 
-                if (windowFlags->isLightCastersOn[2])
-                {
-                    ImGui::InputFloat("SpotLight InnerCutOut", &lightManager->spotLight->innerCutOut, 0.01f, 0.01f, "%.3f");
-                    ImGui::InputFloat("SpotLight OutterCutOut", &lightManager->spotLight->outterCutOut, 0.01f, 0.01f, "%.3f");
-
-                    ImGui::InputFloat3("SpotLight Position", glm::value_ptr(lightManager->spotLight->position), "%.1f");
-                    ImGui::InputFloat3("SpotLight Direction", glm::value_ptr(lightManager->spotLight->direction), "%.1f");
-
-                    ImGui::ColorEdit3("SpotLight Ambient", glm::value_ptr(lightManager->spotLight->ambient));
-                    ImGui::ColorEdit3("SpotLight Diffuse", glm::value_ptr(lightManager->spotLight->diffuse));
-                    ImGui::ColorEdit3("SpotLight Specular", glm::value_ptr(lightManager->spotLight->specular));
-                }
-            }
         }
         ImGui::End();
     }
@@ -1601,79 +1516,94 @@ inline void RenderApp::DrawSkyboxToolWindow()
     if (ImGui::Begin("Skybox", &windowFlags->skybox_window_open))
     {
         ImVec2 fill_size = ImVec2(24, 24);
-        ImGui::Dummy(fill_size);
-        ImGui::SameLine();
-        ImGui::Text("Skybox On/Off");
-        ImGui::SameLine();
-        ImGui::ToggleButton("Skybox Toggle", &windowFlags->isSkyboxOn);
+       
         if (windowFlags->isSkyboxOn)
         {
             float w = ImGui::GetWindowWidth() / 4;
             auto flags = ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_NoHostExtendX |
                 ImGuiTableFlags_SizingStretchSame;
             //Draw SkyboxTextures Region
-            if (ImGui::CollapsingHeader("Skybox Preview"))
+            if (ImGui::CollapsingHeader("SkyBox"))
             {
-                if (ImGui::BeginTable("Skybox Preview Table", 4, flags, ImVec2(w * 4, w * 3)))
+                ImGui::Dummy(fill_size);
+                ImGui::SameLine();
+                ImGui::Text("Skybox On/Off");
+                ImGui::SameLine();
+                ImGui::ToggleButton("Skybox Toggle", &windowFlags->isSkyboxOn);
+                ImGui::Dummy(ImVec2(12, 12)); ImGui::SameLine;
+                if (ImGui::CollapsingHeader("Skybox Preview"))
                 {
-                    //The First Row
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[2], ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    //The Second Row
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[1], ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[4], ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[0], ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[5], ImVec2(w, w));
-                    //The Third Row
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[3], ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::EndTable();
+                    if (ImGui::BeginTable("Skybox Preview Table", 4, flags, ImVec2(w * 4, w * 3)))
+                    {
+                        //The First Row
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[2], ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        //The Second Row
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[1], ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[4], ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[0], ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[5], ImVec2(w, w));
+                        //The Third Row
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Image((void*)resources->skybox_textures[3], ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::EndTable();
+                    }
+                }
+                ImGui::Dummy(ImVec2(12, 12)); ImGui::SameLine;
+                if (ImGui::CollapsingHeader("Skybox Setting"))
+                {
+                    if (ImGui::BeginTable("Skybox Setting Table", 4, flags, ImVec2(w * 4, w * 3)))
+                    {
+                        //The First Row
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Top", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[2], "Open A Top Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        //The Second Row
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Left", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[1], "Open A Left Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Front", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[4], "Open A Front Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Right", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[0], "Open A Right Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Back", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[5], "Open A Back Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        //The Third Row
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Bottom", ImVec2(w, w)))
+                            ifd::FileDialog::Instance().Open(skybox_dialogs[3], "Open A Bottom Image",
+                                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
+                        ImGui::EndTable();
+                    }
                 }
             }
-
-            if (ImGui::CollapsingHeader("Skybox Setting"))
+            //EnvTexture for PBR
+            if (ImGui::CollapsingHeader("PBR"))
             {
-                if (ImGui::BeginTable("Skybox Setting Table", 4, flags, ImVec2(w * 4, w * 3)))
-                {
-                    //The First Row
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Top", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[2], "Open A Top Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    //The Second Row
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Left", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[1], "Open A Left Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Front", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[4], "Open A Front Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Right", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[0], "Open A Right Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Back", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[5], "Open A Back Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    //The Third Row
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn();
-                    if (ImGui::Button("Bottom", ImVec2(w, w)))
-                        ifd::FileDialog::Instance().Open(skybox_dialogs[3], "Open A Bottom Image",
-                            "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::TableNextColumn(); ImGui::Dummy(ImVec2(w, w));
-                    ImGui::EndTable();
-                }
+                ImGui::Dummy(fill_size);
+                ImGui::SameLine();
+                ImGui::Text("EnvMapping On/Off");
+                ImGui::SameLine();
+                ImGui::ToggleButton("EnvMapping Toggle", &windowFlags->isSkyboxOn);
+                ImGui::Dummy(ImVec2(12, 12)); ImGui::SameLine;
             }
             // file dialogs
             for (size_t i = 0; i < 6; i++)
@@ -1788,5 +1718,851 @@ inline void RenderApp::ShowExportWindow()
             ImGui::EndPopup();
         }
         ImGui::End();
+    }
+}
+
+inline void RenderApp::LoadPBREnvMap(const char* path)
+{
+    // pbr: setup framebuffer
+// ----------------------
+    glGenFramebuffers(1, &captureFBO);
+    glGenRenderbuffers(1, &captureRBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+    // pbr: load the HDR environment map
+    // ---------------------------------
+    stbi_set_flip_vertically_on_load(true);
+    int width, height, nrComponents;
+    float* data = stbi_loadf("Resources/newport_loft.hdr", &width, &height, &nrComponents, 0);
+    unsigned int hdrTexture;
+    if (data)
+    {
+        glGenTextures(1, &hdrTexture);
+        glBindTexture(GL_TEXTURE_2D, hdrTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data); // note how we specify the texture's data value to be float
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Failed to load HDR image." << std::endl;
+    }
+
+    // pbr: setup cubemap to render to and attach to framebuffer
+    // ---------------------------------------------------------
+    glGenTextures(1, &envCubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // enable pre-filter mipmap sampling (combatting visible dots artifact)
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
+    // ----------------------------------------------------------------------------------------------
+    glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    glm::mat4 captureViews[] =
+    {
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+    };
+
+    // pbr: convert HDR equirectangular environment map to cubemap equivalent
+    // ----------------------------------------------------------------------
+    shaderManager->equirectangularToCubemapShader.use();
+    shaderManager->equirectangularToCubemapShader.setInt("equirectangularMap", 0);
+    shaderManager->equirectangularToCubemapShader.setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+    glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        shaderManager->equirectangularToCubemapShader.setMat4("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderCube();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
+    // --------------------------------------------------------------------------------
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+    // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
+    // -----------------------------------------------------------------------------
+    shaderManager->irradianceShader.use();
+    shaderManager->irradianceShader.setInt("environmentMap", 0);
+    shaderManager->irradianceShader.setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        shaderManager->irradianceShader.setMat4("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderCube();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
+    // --------------------------------------------------------------------------------
+    glGenTextures(1, &prefilterMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear 
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
+    // ----------------------------------------------------------------------------------------------------
+    shaderManager->prefilterShader.use();
+    shaderManager->prefilterShader.setInt("environmentMap", 0);
+    shaderManager->prefilterShader.setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    unsigned int maxMipLevels = 5;
+    for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
+    {
+        // reisze framebuffer according to mip-level size.
+        unsigned int mipWidth = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+        glViewport(0, 0, mipWidth, mipHeight);
+
+        float roughness = (float)mip / (float)(maxMipLevels - 1);
+        shaderManager->prefilterShader.setFloat("roughness", roughness);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            shaderManager->prefilterShader.setMat4("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderCube();
+        }
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // pbr: generate a 2D LUT from the BRDF equations used.
+    // ----------------------------------------------------
+    glGenTextures(1, &brdfLUTTexture);
+
+    // pre-allocate enough memory for the LUT texture.
+    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
+    // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
+
+    glViewport(0, 0, 512, 512);
+    shaderManager->brdfShader.use();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderQuad();
+}
+
+inline void RenderApp::ShowBlingPhongMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes)
+{
+    size_t p = 0;
+    ImVec2 fill_size = ImVec2(24, 24);
+    auto m = static_cast<BlingPhongMaterial*>(material);
+    //Ambient
+    ImGui::Dummy(fill_size);
+    ImGui::SameLine();
+    ImGui::ColorEdit3("Ambient", glm::value_ptr(m->Ambient));
+    //Diffuse Mapping
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::ColorEdit3("Diffuse ", glm::value_ptr(m->Diffuse));
+    ImGui::SameLine();
+    ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);             // Black background
+    ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // No tint
+    if (m->diffuseMapping)
+    {
+        if (ImGui::ImageButton("#Diffuse", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Diffuse", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[0], "Open A Diffuse Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+
+    //Specular Mapping
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::ColorEdit3("Specular", glm::value_ptr(m->Specular));
+    ImGui::SameLine();
+    if (m->specularMapping)
+    {
+        if (ImGui::ImageButton("#Specular", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Specular", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[1], "Open A Specular Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+    //Normal Mapping
+    ImGui::Dummy(fill_size); ImGui::SameLine();
+    ImGui::Text("Normal Map"); ImGui::SameLine();
+    if (m->normalMapping)
+    {
+        if (ImGui::ImageButton("#Normal", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Normal", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open(material_dialogs[2], "Open A Normal Map",
+                "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga){.png,.jpg,.jpeg,.bmp,.tga},.*", true);
+    //Shininess
+    ImGui::Dummy(fill_size); ImGui::SameLine();
+    ImGui::SliderFloat("Shininess", &m->Shininess, 0, 128);
+
+    ImGui::Dummy(fill_size);
+    ImGui::SameLine();
+
+    ImGui::Text(m->m_shader->vertexName.c_str());
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(24 * 3, 30));
+    ImGui::SameLine();
+    if (ImGui::Button("Open .vert", ImVec2(24 * 6, 30)))
+    {
+        windowFlags->shader_window_open = true;
+        windowFlags->shader_flag = VERTEX;
+        editor.SetText(m->m_shader->vertexCode);
+    }
+
+    ImGui::Dummy(fill_size);
+    ImGui::SameLine();
+    ImGui::Text(m->m_shader->fragmentName.c_str());
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(24 * 3, 30));
+    ImGui::SameLine();
+    if (ImGui::Button("Open .frag", ImVec2(24 * 6, 30)))
+    {
+        windowFlags->shader_window_open = true;
+        windowFlags->shader_flag = FRAGMENT;
+        windowFlags->cur_shader = m->m_shader;
+        editor.SetText(m->m_shader->fragmentCode);
+    }
+}
+
+inline void RenderApp::ProcessBlingPhongDialog(Material* material, std::vector<Texture>& textures)
+{
+    auto m = static_cast<BlingPhongMaterial*>(material);
+    for (size_t i = 0; i < 3; i++)
+    {
+        if (ifd::FileDialog::Instance().IsDone(material_dialogs[i])) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                //old pic will be replaced with new pic
+                if (res.size() == 1)
+                {
+                    switch (i)
+                    {
+                    case 0:
+                    {
+                        if (m->diffuseMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str(), true);
+                            tex.type = "texture_diffuse";
+                            textures.insert(textures.begin(), std::move(tex));
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type == "texture_diffuse")
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str(), true);
+                                    textures[j].type = "texture_diffuse";
+                                    break;
+                                }
+                            }
+                        }
+                        m->diffuseMapping = true;
+                    }; break;
+                    case 1:
+                    {
+                        bool k = false;
+                        if (m->specularMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_specular";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type == "texture_diffuse")
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                                break;
+                            else
+                                textures.insert(textures.begin(), std::move(tex));
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type == "texture_specular")
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_specular";
+                                    break;
+                                }
+                            }
+                        }
+                        m->specularMapping = true;
+                    }; break;
+                    case 2:
+                    {
+                        bool k = false;
+                        if (m->normalMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_normal";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type == "texture_specular")
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                                break;
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type == "texture_diffuse")
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                                break;
+                            else
+                                textures.insert(textures.begin(), std::move(tex));
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type == "texture_normal")
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_normal";
+                                    break;
+                                }
+                            }
+                        }
+                        m->normalMapping = true;
+                    }; break;
+                    default:break;
+                    }
+                }
+            }
+            ifd::FileDialog::Instance().Close();
+        }
+    }
+}
+
+inline void RenderApp::ShowPBRMaterial(int cur_index, Material* material, std::vector<Mesh>& meshes)
+{
+    size_t p = 0;
+    ImVec2 fill_size = ImVec2(24, 24);
+    ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);             // Black background
+    ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // No tint
+
+    auto m = static_cast<PBRMaterial*>(material);
+    //Albedo
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::ColorEdit3("Albedo", glm::value_ptr(m->albedo));
+    ImGui::SameLine();
+    if (m->albedoMapping)
+    {
+        if (ImGui::ImageButton("#Albedo", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Albedo Mapping", "Open Albedo Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Albedo", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Albedo Mapping", "Open Albedo Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    //Ao
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::SliderFloat("Ao", &m->ao, 1.0f, 2.0f, "%.2f");
+    ImGui::SameLine();
+    if (m->aoMapping)
+    {
+        if (ImGui::ImageButton("#Ao", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Ao Mapping", "Open Ao Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Ao", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Ao Mapping", "Open Ao Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    //Metallic
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::SliderFloat("Metallic", &m->metallic, 0.0f, 1.0f, "%.2f");
+    ImGui::SameLine();
+    if (m->metallicMapping)
+    {
+        if (ImGui::ImageButton("#Metallic", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Metallic Mapping", "Open Metallic Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Metallic", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Metallic Mapping", "Open Metallic Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    //Normal
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::Text("Normal");
+    ImGui::SameLine();
+    if (m->normalMapping)
+    {
+        if (ImGui::ImageButton("#Normal", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Normal Mapping", "Open Normal Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Normal", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Normal Mapping", "Open Normal Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    //Roughness
+    ImGui::NewLine(); ImGui::Dummy(fill_size);
+    ImGui::SameLine(); ImGui::SetNextItemWidth(250.0f);
+    ImGui::SliderFloat("Roughness", &m->roughness, 0.05f, 1.0f, "%.2f");
+    ImGui::SameLine();
+    if (m->roughnessMapping)
+    {
+        if (ImGui::ImageButton("#Roughness", (void*)meshes[cur_index].textures[p++].id, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Roughness Mapping", "Open Roughness Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+    }
+    else
+        if (ImGui::ImageButton("#Roughness", 0, ImVec2(32, 32)))
+            ifd::FileDialog::Instance().Open("PBR Roughness Mapping", "Open Roughness Map",
+                "Image file (*.png;*.jpg;){.png,.jpg},.*", true);
+
+    ImGui::Dummy(fill_size);
+    ImGui::SameLine();
+
+    ImGui::Text(m->m_shader->vertexName.c_str());
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(24 * 3, 30));
+    ImGui::SameLine();
+    if (ImGui::Button("Open .vert", ImVec2(24 * 6, 30)))
+    {
+        windowFlags->shader_window_open = true;
+        windowFlags->shader_flag = VERTEX;
+        editor.SetText(m->m_shader->vertexCode);
+    }
+
+    ImGui::Dummy(fill_size);
+    ImGui::SameLine();
+    ImGui::Text(m->m_shader->fragmentName.c_str());
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(24 * 3, 30));
+    ImGui::SameLine();
+    if (ImGui::Button("Open .frag", ImVec2(24 * 6, 30)))
+    {
+        windowFlags->shader_window_open = true;
+        windowFlags->shader_flag = FRAGMENT;
+        windowFlags->cur_shader = m->m_shader;
+        editor.SetText(m->m_shader->fragmentCode);
+    }
+}
+
+inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>& textures)
+{
+    auto m = static_cast<PBRMaterial*>(material);
+    for (size_t i = 0; i < 5; i++)
+    {
+        if (ifd::FileDialog::Instance().IsDone(pbr_material_dialogs[i])) {
+            if (ifd::FileDialog::Instance().HasResult()) {
+                const std::vector<std::filesystem::path>& res = ifd::FileDialog::Instance().GetResults();
+                //old pic will be replaced with new pic
+                if (res.size() == 1)
+                {
+                    switch (i)
+                    {
+                    case 0:
+                    {
+                        if (m->albedoMapping == false)
+                        { 
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str(), true);
+                            tex.type = "texture_albedo";
+                            textures.insert(textures.begin(), std::move(tex));
+                            m->albedoMapping = true;
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_albedo") == 0)
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str(), true);
+                                    textures[j].type = "texture_albedo";
+                                    break;
+                                }
+                            }
+                        }
+                    }; break;
+                    case 1:
+                    {
+                        bool k = false;
+                        if (m->aoMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_ao";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_albedo") == 0)
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                            {
+                                m->aoMapping = true;
+                                break;
+                            }
+                            else
+                            {
+                                textures.insert(textures.begin(), std::move(tex));
+                                m->aoMapping = true;
+                            }
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_ao") == 0)
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_ao";
+                                    break;
+                                }
+                            }
+                        }
+                    }; break;
+                    case 2:
+                    {
+                        bool k = false;
+                        if (m->metallicMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_metallic";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_ao") == 0)
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                            {
+                                m->metallicMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_albedo") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->metallicMapping = true;
+                                break;
+                            }
+                            else
+                            {
+                                textures.insert(textures.begin(), std::move(tex));
+                                m->metallicMapping = true;
+                            }
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_metallic") == 0)
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_metallic";
+                                    break;
+                                }
+                            }
+                        }
+                    }; break;
+                    case 3:
+                    {
+                        bool k = false;
+                        if (m->normalMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_normal";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_metallic") == 0) 
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                            {
+                                m->normalMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_ao") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->normalMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_albedo") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->normalMapping = true;
+                                break;
+                            }
+                            else
+                            {
+                                textures.insert(textures.begin(), std::move(tex));
+                                m->normalMapping = true;
+                            }
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_normal") == 0)
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_normal";
+                                    break;
+                                }
+                            }
+                        }
+                    }; break;
+                    case 4:
+                    {
+                        bool k = false;
+                        if (m->roughnessMapping == false)
+                        {
+                            Texture tex;
+                            tex.path = res[0].u8string();
+                            tex.id = LoadTexture(tex.path.C_Str());
+                            tex.type = "texture_roughness";
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_normal") == 0)
+                                {
+                                    textures.insert(textures.begin() + j + 1, tex);
+                                    k = true;
+                                    break;
+                                }
+                            }
+                            if (k)
+                            {
+                                m->roughnessMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_metallic") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->roughnessMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_ao") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->roughnessMapping = true;
+                                break;
+                            }
+                            else
+                                for (size_t j = 0; j < textures.size(); j++)
+                                {
+                                    if (textures[j].type.compare("texture_albedo") == 0)
+                                    {
+                                        textures.insert(textures.begin() + j + 1, tex);
+                                        k = true;
+                                        break;
+                                    }
+                                }
+                            if (k)
+                            {
+                                m->roughnessMapping = true;
+                                break;
+                            }
+                            else
+                            {
+                                textures.insert(textures.begin(), std::move(tex));
+                                m->roughnessMapping = true;
+                            }
+                        }
+                        else
+                        {
+                            for (size_t j = 0; j < textures.size(); j++)
+                            {
+                                if (textures[j].type.compare("texture_roughness") == 0)
+                                {
+                                    textures[j].path = res[0].u8string();
+                                    glDeleteTextures(1, &textures[j].id);
+                                    textures[j].id = LoadTexture(textures[j].path.C_Str());
+                                    textures[j].type = "texture_roughness";
+                                    break;
+                                }
+                            }
+                        }
+                    }; break;
+                    default:break;
+                    }
+                }
+            }
+            ifd::FileDialog::Instance().Close();
+        }
     }
 }

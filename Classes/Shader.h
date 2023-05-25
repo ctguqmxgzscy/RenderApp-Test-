@@ -68,6 +68,27 @@ struct SpotLight
 	}
 };
 
+struct PBRPointLight
+{
+	glm::vec3 position;
+	glm::vec3 lightColor;
+	PBRPointLight()
+	{
+		position = glm::vec3(0, 5.0f, 0.0f);
+		lightColor = glm::vec3(300.0f, 300.0f, 300.0f);
+	}
+};
+
+struct PBRDirctionalLight
+{
+	glm::vec3 direction;
+	glm::vec3 lightColor;
+	PBRDirctionalLight()
+	{
+		direction = glm::vec3(0, 0.0f, -1.0f);
+		lightColor = glm::vec3(300.0f, 300.0f, 300.0f);
+	}
+};
 
 class LightManager
 {
@@ -77,6 +98,7 @@ public:
 		dirLight = new DirectionalLight();
 		spotLight = new SpotLight();
 		pointLight = new PointLight();
+		pbrPointLight = new PBRPointLight();
 	}
 	~LightManager() {}
 
@@ -85,6 +107,7 @@ public:
 	DirectionalLight* dirLight;
 	SpotLight* spotLight;
 	PointLight* pointLight;
+	PBRPointLight* pbrPointLight;
 };
 
 class Shader {
@@ -121,6 +144,8 @@ public:
 	void setDirLight(const DirectionalLight& light) const;
 	void setPointLight(const PointLight& light)const;
 	void setSpotLight(const SpotLight& light)const;
+	void setPBRPointLight(const PBRPointLight& light)const;
+	void setPBRDirLight(const PBRDirctionalLight& light)const;
 	void setMVP(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection)const;
 };
 
@@ -139,6 +164,13 @@ struct ShaderManager
 	Shader edge_detection_shader;
 	//Test Shader
 	Shader custom_shader;
+	//PBR Shader
+	Shader pbr_shader;
+	Shader equirectangularToCubemapShader;
+	Shader irradianceShader;
+	Shader prefilterShader;
+	Shader brdfShader;
+	Shader backgroundShader;
 	ShaderManager()
 	{
 		//Skybox shader
@@ -158,6 +190,16 @@ struct ShaderManager
 		blur_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Blur.frag"));
 		//5th Edge-Detection Effect
 		edge_detection_shader = std::move(Shader("Shaders/PostProcessing.vert", "Shaders/Edge-Detection.frag"));
+
+		// build and compile pbr shaders
+		// -------------------------
+		pbr_shader = std::move(Shader("Shaders/pbr.vert", "Shaders/pbr.frag"));
+		equirectangularToCubemapShader = std::move(Shader("Shaders/cubemap.vert", "Shaders/equirectangular_to_cubemap.frag"));
+		irradianceShader = std::move(Shader("Shaders/cubemap.vert", "Shaders/irradiance_convolution.frag"));
+		prefilterShader = std::move(Shader("Shaders/cubemap.vert", "Shaders/prefilter.frag"));
+		brdfShader = std::move(Shader("Shaders/brdf.vert", "Shaders/brdf.frag"));
+		backgroundShader = std::move(Shader("Shaders/background.vert", "Shaders/background.frag"));
+
 		cur_effect_shader = &inversion_shader;
 
 		custom_shader = {};

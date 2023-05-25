@@ -4,14 +4,51 @@
 #include"Shader.h"
 #include<unordered_map>
 
+enum MaterialType
+{
+	BlingPhong,
+	PBR
+};
+
 class Material
 {
 public:
-	Material();
-	Material(const Material& rhs);
-public:
+	MaterialType type;
 	Shader* m_shader;
-	std::string Name;
+	void setShader(Shader* shader) { this->m_shader = shader; }
+};
+
+class PBRMaterial :public Material
+{
+public:
+	~PBRMaterial();
+	PBRMaterial();
+	PBRMaterial(const PBRMaterial& rhs);
+
+public:
+	bool albedoMapping = false;
+	bool normalMapping = false;
+	bool metallicMapping = false;
+	bool roughnessMapping = false;
+	bool aoMapping = false;
+
+	glm::vec3  albedo;
+	float metallic;
+	float roughness;
+	float ao;
+
+public:
+	void setShaderProp();
+};
+
+class BlingPhongMaterial : public Material
+{
+public:
+	~BlingPhongMaterial();
+	BlingPhongMaterial();
+	BlingPhongMaterial(const BlingPhongMaterial& rhs);
+public:
+
 	bool diffuseMapping = false;
 	bool normalMapping = false;
 	bool specularMapping = false;
@@ -21,7 +58,5 @@ public:
 	glm::vec3 Specular;
 	float Shininess;
 public:
-	void setShader(Shader* shader);
 	void setShaderProp();
 };
-

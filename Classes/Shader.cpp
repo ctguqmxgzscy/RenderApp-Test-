@@ -278,6 +278,20 @@ void Shader::setSpotLight(const SpotLight& light) const
 	this->setFloat("spotLight.outterCutOut", light.outterCutOut);
 }
 
+void Shader::setPBRPointLight(const PBRPointLight& light) const
+{
+	this->setVec3("pointLight.position", light.position);
+	this->setVec3("pointLight.lightColor", light.lightColor);
+
+}
+
+void Shader::setPBRDirLight(const PBRDirctionalLight& light) const
+{
+	this->setVec3("dirLight.direction", light.direction);
+	this->setVec3("dirLight.lightColor", light.lightColor);
+
+}
+
 void Shader::setMVP(const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection) const
 {
 	this->setMat4("model", model);

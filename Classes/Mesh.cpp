@@ -5,7 +5,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	this->vertices = vertices;
 	this->indices = indices;
 	this->textures = textures;
-	this->material = Material();
+	this->material = new BlingPhongMaterial();
 	setupMesh();
 }
 
@@ -41,39 +41,93 @@ void Mesh::GetDataFrom(GeometryGenerator::MeshData data)
 
 void Mesh::Draw()
 {
-	material.m_shader->use();
+	material->m_shader->use();
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	unsigned int normalNr = 1;
 	unsigned int heightNr = 1;
-	for (int i = 0; i < textures.size(); i++) {
-		glActiveTexture(GL_TEXTURE0 + i);
-		std::string number;
-		std::string name = textures[i].type;
-		if (name == "texture_diffuse")
+	if (material->type == BlingPhong)
+	{
+		for (int i = 0; i < textures.size(); i++) 
 		{
-			material.diffuseMapping = true;
-			number = std::to_string(diffuseNr++);
-		}
-		else if (name == "texture_specular")
-		{
-			material.specularMapping = true;
-			number = std::to_string(specularNr++);
-		}
-		else if (name == "texture_normal")
-		{
-			material.normalMapping = true;
-			number = std::to_string(normalNr++);
-		}
-		else if (name == "texture_height")
-			number = std::to_string(heightNr++);
+			glActiveTexture(GL_TEXTURE0 + i);
+			std::string number;
+			std::string name = textures[i].type;
+			if (name == "texture_diffuse")
+			{
+				if (material->type == BlingPhong)
+				{
+					auto m = static_cast<BlingPhongMaterial*>(material);
+					m->diffuseMapping = true;
+					number = std::to_string(diffuseNr++);
+				}
+			}
+			else if (name == "texture_specular")
+			{
+				if (material->type == BlingPhong)
+				{
+					auto m = static_cast<BlingPhongMaterial*>(material);
+					m->specularMapping = true;
+					number = std::to_string(specularNr++);
+				}
+			}
+			else if (name == "texture_normal")
+			{
+				if (material->type == BlingPhong)
+				{
+					auto m = static_cast<BlingPhongMaterial*>(material);
+					m->normalMapping = true;
+					number = std::to_string(normalNr++);
+				}
+			}
+			else if (name == "texture_height")
+				number = std::to_string(heightNr++);
 
-		material.m_shader->setFloat(("material."+name + number).c_str(), i);
-		glBindTexture(GL_TEXTURE_2D, textures[i].id);
+			if (material->type == BlingPhong)
+			{
+				material->m_shader->setFloat(("material." + name + number).c_str(), i);
+			}
+			glBindTexture(GL_TEXTURE_2D, textures[i].id);
+		}
+		glActiveTexture(GL_TEXTURE0);
 	}
-	glActiveTexture(GL_TEXTURE0);
-	material.setShaderProp();
 
+	if(material->type == BlingPhong)
+	{
+		auto m = static_cast<BlingPhongMaterial*>(material);
+		m->setShaderProp();
+	}
+	else if (material->type == PBR)
+	{
+		auto m = static_cast<PBRMaterial*>(material);
+		size_t p = 0;
+		if (m->albedoMapping)
+		{
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, textures[p++].id);
+		}
+		if (m->aoMapping)
+		{
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, textures[p++].id);
+		}
+		if (m->metallicMapping)
+		{
+			glActiveTexture(GL_TEXTURE5);
+			glBindTexture(GL_TEXTURE_2D, textures[p++].id);
+		}
+		if (m->normalMapping)
+		{
+			glActiveTexture(GL_TEXTURE6);
+			glBindTexture(GL_TEXTURE_2D, textures[p++].id);
+		}
+		if (m->roughnessMapping)
+		{
+			glActiveTexture(GL_TEXTURE7);
+			glBindTexture(GL_TEXTURE_2D, textures[p++].id);
+		}
+		m->setShaderProp();
+	}
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -82,9 +136,9 @@ void Mesh::Draw()
 void Mesh::Draw_PickingEffects(unsigned int i)
 {
 	glBindVertexArray(VAO);
-	material.m_shader->use();
-	material.m_shader->setUint("MeshIndex", i);
-	material.m_shader->setUint("IndicesSize", indices.size());
+	material->m_shader->use();
+	material->m_shader->setUint("MeshIndex", i);
+	material->m_shader->setUint("IndicesSize", indices.size());
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
@@ -92,7 +146,7 @@ void Mesh::Draw_PickingEffects(unsigned int i)
 void Mesh::Draw_Mesh_SimpleColor()
 {
 	glBindVertexArray(VAO);
-	material.m_shader->use();
+	material->m_shader->use();
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }

@@ -46,6 +46,12 @@
     <Filter Include="头文件\stb_image">
       <UniqueIdentifier>{6d6328cb-2c77-4250-b20f-a9d139310b4b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\Shaders\BlingPhong">
+      <UniqueIdentifier>{889c0ba7-86ed-4add-9b6a-dee2302106c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\Shaders\PBR">
+      <UniqueIdentifier>{cf0f4217-fd10-4616-b0ee-7d3729a30865}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -278,17 +284,47 @@
     <None Include="Shaders\Grayscale.frag">
       <Filter>资源文件\Shaders\Effects\PostProcessing</Filter>
     </None>
-    <None Include="Shaders\standard.vert">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
-    <None Include="Shaders\standard.frag">
-      <Filter>资源文件\Shaders\Model_testShaders</Filter>
-    </None>
     <None Include="Shaders\gridline.vert">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
     </None>
     <None Include="Shaders\gridline.frag">
       <Filter>资源文件\Shaders\Basic_testShaders</Filter>
+    </None>
+    <None Include="Shaders\standard.vert">
+      <Filter>资源文件\Shaders\BlingPhong</Filter>
+    </None>
+    <None Include="Shaders\standard.frag">
+      <Filter>资源文件\Shaders\BlingPhong</Filter>
+    </None>
+    <None Include="Shaders\pbr.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\pbr.vert">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\cubemap.vert">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\equirectangular_to_cubemap.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\irradiance_convolution.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\prefilter.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\brdf.vert">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\brdf.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\background.vert">
+      <Filter>资源文件\Shaders\PBR</Filter>
+    </None>
+    <None Include="Shaders\background.frag">
+      <Filter>资源文件\Shaders\PBR</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

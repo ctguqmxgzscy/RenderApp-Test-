@@ -112,6 +112,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>imgui\;glad\src;glad\include;glfw-3.3.bin.WIN32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -204,6 +205,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Shaders\background.frag" />
+    <None Include="Shaders\background.vert" />
     <None Include="Shaders\Basic_Light.frag" />
     <None Include="Shaders\Basic_Light.vert" />
     <None Include="Shaders\basic_trans.frag" />
@@ -211,15 +214,20 @@
     <None Include="Shaders\blendShader.frag" />
     <None Include="Shaders\blendShader.vert" />
     <None Include="Shaders\Blur.frag" />
+    <None Include="Shaders\brdf.frag" />
+    <None Include="Shaders\brdf.vert" />
     <None Include="Shaders\container.frag" />
     <None Include="Shaders\container.vert" />
+    <None Include="Shaders\cubemap.vert" />
     <None Include="Shaders\DiffuseMap.frag" />
     <None Include="Shaders\DiffuseMap.vert" />
     <None Include="Shaders\Edge-Detection.frag" />
+    <None Include="Shaders\equirectangular_to_cubemap.frag" />
     <None Include="Shaders\Grayscale.frag" />
     <None Include="Shaders\gridline.frag" />
     <None Include="Shaders\gridline.vert" />
     <None Include="Shaders\Inversion.frag" />
+    <None Include="Shaders\irradiance_convolution.frag" />
     <None Include="Shaders\Light.frag" />
     <None Include="Shaders\Light.vert" />
     <None Include="Shaders\Light_Casters.frag" />
@@ -228,8 +236,11 @@
     <None Include="Shaders\Material.vert" />
     <None Include="Shaders\Model.frag" />
     <None Include="Shaders\Model.vert" />
+    <None Include="Shaders\pbr.frag" />
+    <None Include="Shaders\pbr.vert" />
     <None Include="Shaders\Picking.frag" />
     <None Include="Shaders\Picking.vert" />
+    <None Include="Shaders\prefilter.frag" />
     <None Include="Shaders\Sharpen.frag" />
     <None Include="Shaders\SimpleModel.frag" />
     <None Include="Shaders\SimpleModel.vert" />

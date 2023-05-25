@@ -45,12 +45,12 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures; 
-	Material material;
+	Material* material;
 public:
 
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
 		std::vector<Texture> textures);
-	Mesh() { this->material = Material(); };
+	Mesh() { this->material = new BlingPhongMaterial(); };
 	//~Mesh();
 	 unsigned int& get_VAO() { return this->VAO; }
 	 unsigned int& get_VBO() { return this->VBO; }
