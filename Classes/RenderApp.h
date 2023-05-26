@@ -171,6 +171,7 @@ int RenderApp::Run() {
     //mesh.material->m_shader = &shaderManager->pbr_shader;
     //auto m = static_cast<PBRMaterial*>(mesh.material);
     //items[0]->setModel(&mesh);
+    items.push_back(new RenderItem("Resources/Nanosuit/nanosuit.obj"));
     //GridLineData
     gridMesh.GetDataFrom(generator->CreateGridLine(24, 24, 12, 12));
     gridMesh.material->m_shader = new Shader("Shaders/gridline.vert", "Shaders/gridline.frag");
@@ -2242,7 +2243,7 @@ inline void RenderApp::ProcessBlingPhongDialog(Material* material, std::vector<T
                             {
                                 if (textures[j].type == "texture_diffuse")
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2281,7 +2282,7 @@ inline void RenderApp::ProcessBlingPhongDialog(Material* material, std::vector<T
                             {
                                 if (textures[j].type == "texture_specular")
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2293,7 +2294,7 @@ inline void RenderApp::ProcessBlingPhongDialog(Material* material, std::vector<T
                                 {
                                     if (textures[j].type == "texture_diffuse")
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2492,7 +2493,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                             {
                                 if (textures[j].type.compare("texture_albedo") == 0)
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2536,7 +2537,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                             {
                                 if (textures[j].type.compare("texture_ao") == 0)
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2551,7 +2552,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_albedo") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2595,7 +2596,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                             {
                                 if (textures[j].type.compare("texture_metallic") == 0) 
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2610,7 +2611,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_ao") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2625,7 +2626,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_albedo") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2669,7 +2670,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                             {
                                 if (textures[j].type.compare("texture_normal") == 0)
                                 {
-                                    textures.insert(textures.begin() + j + 1, tex);
+                                    textures.insert(textures.begin() + j + 1, std::move(tex));
                                     k = true;
                                     break;
                                 }
@@ -2684,7 +2685,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_metallic") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2699,7 +2700,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_ao") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }
@@ -2714,7 +2715,7 @@ inline void RenderApp::ProcessPBRDialog(Material* material, std::vector<Texture>
                                 {
                                     if (textures[j].type.compare("texture_albedo") == 0)
                                     {
-                                        textures.insert(textures.begin() + j + 1, tex);
+                                        textures.insert(textures.begin() + j + 1, std::move(tex));
                                         k = true;
                                         break;
                                     }

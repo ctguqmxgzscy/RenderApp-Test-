@@ -9,8 +9,19 @@ Model::Model(const char* path)
 Model::Model(Mesh mesh)
 {
 	this->meshes.push_back(std::move(mesh)); 
-	this->directory = "No Directory";
-	this->path = "No Path!";
+	this->directory = "";
+	this->path = "";
+}
+
+Model::Model(const Model& rhs)
+{
+	if (!rhs.directory.empty())
+		this->directory = std::string(rhs.directory);
+	if (!rhs.path.empty())
+		this->path = std::string(rhs.path);
+	this->meshes = std::vector<Mesh>(rhs.meshes);
+	this->isPicking = rhs.isPicking;
+	this->textures_loaded = std::vector<Texture>(rhs.textures_loaded);
 }
 
 Model::~Model()
@@ -84,7 +95,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	//因为这个节点可能本身也是一个由多个子网格组成的模型(父网格)
 	for (unsigned int i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(processMesh(mesh, scene));
+		meshes.push_back(std::move(processMesh(mesh, scene)));
 	}
 	for (unsigned int i = 0; i < node->mNumChildren; i++) {
 		processNode(node->mChildren[i], scene);

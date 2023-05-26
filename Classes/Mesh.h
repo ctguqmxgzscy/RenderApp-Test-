@@ -31,13 +31,50 @@ struct Texture
 	unsigned int id;
 	std::string type;
 	aiString path;
-
+	Texture() {};
 	~Texture()
 	{
 		glDeleteTextures(1, &id);
 		this->id = 0;
 		type.clear();
 		path.Clear();
+	}
+	Texture& operator=(const Texture& rhs)
+	{
+		id = rhs.id;
+		type = rhs.type;
+		path = rhs.path;
+		return *this;
+	}
+	Texture(const Texture& rhs)
+	{
+		id = rhs.id;
+		type = rhs.type;
+		path = rhs.path;
+	}
+
+	Texture& operator=(Texture&& rhs)
+	{
+		if (this != &rhs)
+		{
+			glDeleteTextures(1, &id);
+			id = 0;
+			std::swap(id, rhs.id);
+			type = rhs.type;
+			rhs.type = "";
+			path = rhs.path;
+			rhs.path = "";
+		}
+		return *this;
+	}
+	Texture(Texture&& rhs) noexcept
+	{
+		id = rhs.id;
+		rhs.id = 0;
+		type = rhs.type;
+		rhs.type = "";
+		path = rhs.path;
+		rhs.path = "";
 	}
 };
 
@@ -55,8 +92,8 @@ public:
 	Mesh(MaterialType t); 
 	Mesh() { this->material = new BlingPhongMaterial(); };
 
-	Mesh(const Mesh&) = delete;
-	Mesh& operator=(const Mesh&) = delete;
+	Mesh(const Mesh&);
+	Mesh& operator=(const Mesh&);
 
 	Mesh(Mesh&& rhs) noexcept;
 	Mesh operator=(Mesh&& rhs) noexcept;
