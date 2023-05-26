@@ -1,5 +1,18 @@
 #include"Mesh.h"
 
+Mesh::Mesh(const Mesh& rhs)
+{
+	this->vertices = std::vector<Vertex>(rhs.vertices);
+	this->textures = std::vector<Texture>(rhs.textures);
+	this->indices = std::vector<unsigned int>(rhs.indices);
+	this->isPicking = rhs.isPicking;
+	this->setupMesh();
+	if (rhs.material->type == BlingPhong)
+		this->material = new BlingPhongMaterial(*(static_cast<BlingPhongMaterial*>(rhs.material)));
+	else if (rhs.material->type == PBR)
+		this->material = new PBRMaterial(*(static_cast<PBRMaterial*>(rhs.material)));
+}
+
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
 {
 	this->vertices = vertices;

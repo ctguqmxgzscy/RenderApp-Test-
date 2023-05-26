@@ -6,6 +6,7 @@ class Model {
 public:
 	Model(const char* path);
 	Model(Mesh mesh);
+	Model(const Model& rhs);
 	~Model();
 	//绘制所有网格函数
 	void Draw();
@@ -24,7 +25,7 @@ public:
 	void DisablePicking();
 	
 private:
-	
+
 	bool isPicking = false;
 
 	std::vector<Mesh> meshes;

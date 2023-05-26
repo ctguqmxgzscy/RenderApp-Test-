@@ -62,7 +62,14 @@ RenderItem::RenderItem(const RenderItem* rhs)
 {
     this->_name = std::string(rhs->_name.c_str()).append("(copy)");
     if (rhs->m_Model_ != NULL)
-        this->m_Model_ = new Model(rhs->m_Model_->getPath().c_str());
+    {
+        if (!rhs->m_Model_->getPath().empty())
+            this->m_Model_ = new Model(rhs->m_Model_->getPath().c_str());
+        else 
+        {
+            this->m_Model_ = new Model(*(rhs->m_Model_));
+        }
+    }
     this->_is_shader_loaded = false;
     this->_is_diabled = false;
     this->parent = rhs->parent;

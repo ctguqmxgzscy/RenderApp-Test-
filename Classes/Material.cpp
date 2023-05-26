@@ -29,9 +29,9 @@ BlingPhongMaterial::BlingPhongMaterial(const BlingPhongMaterial& rhs)
 	this->type = BlingPhong;
 	this->Shininess = rhs.Shininess;
 	this->Specular = rhs.Specular;
-	this->normalMapping = false;
-	this->diffuseMapping = false;
-	this->specularMapping = false;
+	this->normalMapping = rhs.normalMapping;
+	this->diffuseMapping = rhs.diffuseMapping;
+	this->specularMapping = rhs.specularMapping;
 	this->m_shader = rhs.m_shader;
 }
 
@@ -72,11 +72,11 @@ PBRMaterial::PBRMaterial(const PBRMaterial& rhs)
 	this->metallic = rhs.metallic;
 	this->roughness = rhs.roughness; 
 	this->type = PBR;
-	this->albedoMapping = false;
-	this->metallicMapping = false;
-	this->normalMapping = false;
-	this->roughnessMapping = false;
-	this->aoMapping = false;
+	this->albedoMapping = rhs.albedoMapping;
+	this->metallicMapping = rhs.metallicMapping;
+	this->normalMapping = rhs.normalMapping;
+	this->roughnessMapping = rhs.roughnessMapping;
+	this->aoMapping = rhs.aoMapping;
 	this->m_shader = rhs.m_shader;
 }
 
