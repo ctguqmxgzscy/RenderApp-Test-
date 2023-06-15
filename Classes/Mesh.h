@@ -5,6 +5,7 @@
 
 #include"Shader.h"
 #include"GeometryGenerator.h"
+
 #include"../glm/glm.hpp"
 #include"../glm/gtc/matrix_transform.hpp"
 #include"../glm/gtc/type_ptr.hpp"
@@ -14,9 +15,6 @@
 #include <assimp/postprocess.h>
 
 #define MAX_BONE_INFLUENCE 4
-#define MAX_TEXTURE_COUNT 200
-
-static size_t texture_ref_count[MAX_TEXTURE_COUNT];
 
 struct Vertex
 {
@@ -29,66 +27,6 @@ struct Vertex
 	int m_BoneIDs[MAX_BONE_INFLUENCE];
 	//weights from each bone
 	float m_Weights[MAX_BONE_INFLUENCE];
-};
-struct Texture
-{
-	unsigned int id;
-	std::string type;
-	aiString path;
-	Texture() {};
-	~Texture()
-	{
-		if (texture_ref_count[id] == 1)
-			glDeleteTextures(1, &id);
-		else if (texture_ref_count[id] != 0)
-			texture_ref_count[id]--;
-			
-		this->id = 0;
-		type.clear();
-		path.Clear();
-	}
-	Texture& operator=(const Texture& rhs)
-	{
-		id = rhs.id;
-		texture_ref_count[id]++;
-		type = rhs.type;
-		path = rhs.path;
-		return *this;
-	}
-	Texture(const Texture& rhs)
-	{
-		id = rhs.id;
-		texture_ref_count[id]++;
-		type = rhs.type;
-		path = rhs.path;
-	}
-
-	Texture& operator=(Texture&& rhs)
-	{
-		if (this != &rhs)
-		{
-			if (texture_ref_count[id] == 1)
-				glDeleteTextures(1, &id);
-			else
-				texture_ref_count[id]--;
-			id = 0;
-			std::swap(id, rhs.id);
-			type = rhs.type;
-			rhs.type = "";
-			path = rhs.path;
-			rhs.path = "";
-		}
-		return *this;
-	}
-	Texture(Texture&& rhs) noexcept
-	{
-		id = rhs.id;
-		rhs.id = 0;
-		type = rhs.type;
-		rhs.type = "";
-		path = rhs.path;
-		rhs.path = "";
-	}
 };
 
 class Mesh

@@ -1195,8 +1195,8 @@ void RenderApp::DrawMainMenuWindow()
 
             if (ImGui::MenuItem("Load Model"))
             {
-                ifd::FileDialog::Instance().Open("ModelFileDialog", "Open A Model Image",
-                    "Model file (*.obj;*.3ds;*.blend;*.FBX;){.obj,.3ds,.blend,.FBX},.*", true);
+                ifd::FileDialog::Instance().Open("ModelFileDialog", "Open A Model",
+                    "Model file (*.obj;*.3ds;*.blend;*.fbx;*.gltf;){.obj,.3ds,.blend,.fbx,.gltf},.*", true);
 
             }
             if (ImGui::BeginMenu("Disabled", false)) // Disabled

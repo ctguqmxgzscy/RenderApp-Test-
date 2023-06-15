@@ -149,10 +149,12 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 	
 	//判断该网格是用到了某些材质
 	if (mesh->mMaterialIndex >= 0) {
+
 		//通过获得loadMaterialTextures获取该网格所需要的所有diffuse和specular贴图
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
 		std::vector<Texture>diffuseMaps = loadMaterialTextures(material,
-			aiTextureType_DIFFUSE, "texture_diffuse");
+			aiTextureType_AMBIENT, "texture_diffuse");
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 		std::vector<Texture>specularMaps = loadMaterialTextures(material,
 			aiTextureType_SPECULAR, "texture_specular");

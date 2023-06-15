@@ -157,11 +157,8 @@ void Mesh::Draw()
 			}
 			glBindTexture(GL_TEXTURE_2D, textures[i].id);
 		}
-		glActiveTexture(GL_TEXTURE0);
-	}
 
-	if(material->type == BlingPhong)
-	{
+		glActiveTexture(GL_TEXTURE0);
 		auto m = static_cast<BlingPhongMaterial*>(material);
 		m->setShaderProp();
 	}

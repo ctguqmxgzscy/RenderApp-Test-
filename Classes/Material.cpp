@@ -1,4 +1,5 @@
 #include"Material.h"
+#include "Mesh.h"
 
 Material::~Material()
 {
@@ -47,6 +48,21 @@ void BlingPhongMaterial::setShaderProp()
 	m_shader->setBool("material.isSpecularMapping", specularMapping);
 }
 
+void BlingPhongMaterial::setDiffuseMap(std::shared_ptr<Texture> diffuseMap)
+{
+	mDiffuseMap = diffuseMap;
+}
+
+void BlingPhongMaterial::setNormalMap(std::shared_ptr<Texture> normalMap)
+{
+	mNormalMap = normalMap;
+}
+
+void BlingPhongMaterial::setSpecularMap(std::shared_ptr<Texture> specularMap)
+{
+	mSpecularMap = specularMap;
+}
+
 PBRMaterial::~PBRMaterial()
 {
 }
@@ -92,4 +108,34 @@ void PBRMaterial::setShaderProp()
 	m_shader->setBool("material.metallicMapping", metallicMapping);
 	m_shader->setBool("material.roughnessMapping", roughnessMapping);
 	m_shader->setBool("material.aoMapping", aoMapping);
+}
+
+void PBRMaterial::setAlbedoMap(std::shared_ptr<Texture> albedoMap)
+{
+
+}
+
+void PBRMaterial::setNormalMap(std::shared_ptr<Texture> normalMap)
+{
+	mNormalMap = normalMap;
+}
+
+void PBRMaterial::setMetallicMap(std::shared_ptr<Texture> metallicMap)
+{
+	mMetallicMap = metallicMap;
+}
+
+void PBRMaterial::setRoughnessMap(std::shared_ptr<Texture> roughnessMap)
+{
+	mRoughnessMap = roughnessMap;
+}
+
+void PBRMaterial::setAoMap(std::shared_ptr<Texture> aoMap)
+{
+	mAoMap = aoMap;
+}
+
+void PBRMaterial::setDisplacementMap(std::shared_ptr<Texture> displacementMap)
+{
+	mDisplacementMap = displacementMap;
 }

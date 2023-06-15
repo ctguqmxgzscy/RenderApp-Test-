@@ -25,7 +25,6 @@ public:
 	void DisablePicking();
 	
 private:
-
 	bool isPicking = false;
 
 	std::vector<Mesh> meshes;
@@ -34,7 +33,6 @@ private:
 	//与顶点复用相似，防止纹理复用
 	std::vector<Texture> textures_loaded;
 private:
-
 	std::vector<Texture> loadMaterialTextures(aiMaterial* mat,
 		aiTextureType type, std::string typeName);
 	void loadModel(std::string const &path);
